@@ -8,3 +8,12 @@ wheels/
 
 # Virtual environments
 .venv
+
+# Environment variables
+.env
+
+# Exploration scripts
+scripts/
+
+# Personal documentation (tutorials, notes, etc.)
+output/personal/
