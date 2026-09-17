@@ -9,7 +9,7 @@ def get_opening_moves(fen):
 
     response = httpx.get("https://explorer.lichess.org/masters",    
                         headers={"Authorization": f"Bearer {lichess_api_token}"},
-                        params = {"fen": fen,"topGames": 0,"recentGames": 0, "moves":3})
+                        params = {"fen": fen,"topGames": 2,"recentGames": 0, "moves":3})
 
     response.raise_for_status()
     data = response.json()
@@ -35,4 +35,4 @@ def get_opening_moves(fen):
         }
         resultats.append(resultat)
 
-    return resultats
+    return resultats,data["topGames"]
