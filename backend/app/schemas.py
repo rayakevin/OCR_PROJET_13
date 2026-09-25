@@ -41,6 +41,13 @@ class DocumentSearchResult(BaseModel) :
     source_url: str
     score: float
     
+
+class VideoReference (BaseModel) :
+    id: str
+    title: str
+    channel: str
+    url: str
+
 class OpeningMovesResponse(BaseModel):
     fen: str
     game_over: bool
@@ -50,9 +57,15 @@ class OpeningMovesResponse(BaseModel):
     games : list[GameReference]
     opening: dict[str, str] | None
     documents: list[DocumentSearchResult]
+    videos: list[VideoReference]
 
 
 
 class VectorSearchResponse(BaseModel) : 
     question: str
     results: list[DocumentSearchResult]
+
+
+class VideoSearchResponse (BaseModel) : 
+    opening : str
+    videos : list [VideoReference]

@@ -6,6 +6,7 @@ from backend.app.services.lichess_service import get_opening_moves
 from backend.app.services.stockfish_service import analyse_position
 from backend.app.services.opening_service import get_opening_title
 from backend.app.services.vector_search_service import search_documents
+from backend.app.services.youtube_service import search_videos
 
 
 class ChessState(TypedDict):
@@ -17,6 +18,7 @@ class ChessState(TypedDict):
     source : str | None
     opening: dict [str,str] | None
     documents: list[dict]
+    videos: list[dict]
 
 def validate_position(state : ChessState):
     fen = state["fen"]
@@ -54,6 +56,18 @@ def route_after_fetch(state: ChessState):
         return "documents"
     return "stockfish"
 
+def fetch_videos(state: ChessState):
+    titre = get_opening_title(state["opening"])
+    if titre : 
+        videos = search_videos(
+            opening=titre,
+            limit=2,
+        )
+        return {"videos": videos}
+    
+    else :
+            return {"videos": []}
+
 def fetch_documents(state: ChessState):
     titre = get_opening_title(state["opening"])
     if titre : 
@@ -76,7 +90,9 @@ builder.add_conditional_edges("fetch", route_after_fetch)
 builder.add_node("stockfish",analyse_stockfish)
 builder.add_edge("stockfish",END)
 builder.add_node("documents", fetch_documents)
-builder.add_edge("documents", END)
+builder.add_node("videos", fetch_videos)
+builder.add_edge("documents", "videos")
+builder.add_edge("videos", END)
 
 
 graph = builder.compile()

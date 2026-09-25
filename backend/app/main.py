@@ -1,11 +1,16 @@
 from fastapi import FastAPI
 from fastapi import HTTPException
 import httpx
+import json
 
 from backend.app.services.chess_service import inspect_position
 from backend.app.services.vector_search_service import search_documents
-from backend.app.schemas import OpeningMovesResponse, PositionResponse, VectorSearchResponse
+from backend.app.services.youtube_service import  search_videos
+
+from backend.app.schemas import OpeningMovesResponse, PositionResponse, VectorSearchResponse, VideoSearchResponse
 from backend.app.graphs.chess_graph import graph
+
+from googleapiclient.errors import HttpError
 
 
 app = FastAPI()
@@ -33,6 +38,7 @@ def get_opening_moves_endpoint(fen: str):
     "source": None,
     "opening": None,
     "documents": [],
+    "videos": [],
     }
 
     try:
@@ -44,7 +50,11 @@ def get_opening_moves_endpoint(fen: str):
     except httpx.HTTPStatusError:
             raise HTTPException(status_code=502, detail="Lichess a renvoyé une erreur.")
     except httpx.RequestError:
-            raise HTTPException(status_code=502, detail="Impossible de contacter Lichess.") 
+            raise HTTPException(status_code=502, detail="Impossible de contacter Lichess.")
+    except HttpError:
+        raise HTTPException(status_code=502,detail="La recherche YouTube a échoué.")
+    except RuntimeError:
+        raise HTTPException(status_code=500, detail="Un service nécessaire à l’analyse est mal configuré ou indisponible.")
 
 @app.get("/api/v1/vector-search",response_model=VectorSearchResponse)
 def get_vector_search_endpoint(question:str, limit: int = 3):
@@ -58,3 +68,22 @@ def get_vector_search_endpoint(question:str, limit: int = 3):
     except ValueError as erreur:
             raise HTTPException(status_code=400, detail=str(erreur))
 
+
+@app.get("/api/v1/videos/{opening}", response_model=VideoSearchResponse)
+def get_videos_endpoint(opening: str, limit: int = 3):
+    try :
+        videos=search_videos(opening, limit)
+        
+        return {
+            "opening":opening,
+            "videos":videos,
+        }
+    except ValueError as erreur:
+            raise HTTPException(status_code=400, detail=str(erreur))
+    except RuntimeError :
+            raise HTTPException(status_code=500, detail="Le servie YouTube n'est pas configuré")
+    except HttpError:
+        raise HTTPException(
+        status_code=502,
+        detail="La recherche YouTube a échoué.",
+    )
