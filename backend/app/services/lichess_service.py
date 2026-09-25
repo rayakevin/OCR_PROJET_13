@@ -35,4 +35,4 @@ def get_opening_moves(fen):
         }
         resultats.append(resultat)
 
-    return resultats,data["topGames"]
+    return resultats,data["topGames"], data.get("opening")

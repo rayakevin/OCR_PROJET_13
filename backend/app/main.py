@@ -3,7 +3,8 @@ from fastapi import HTTPException
 import httpx
 
 from backend.app.services.chess_service import inspect_position
-from backend.app.schemas import OpeningMovesResponse, PositionResponse
+from backend.app.services.vector_search_service import search_documents
+from backend.app.schemas import OpeningMovesResponse, PositionResponse, VectorSearchResponse
 from backend.app.graphs.chess_graph import graph
 
 
@@ -30,6 +31,8 @@ def get_opening_moves_endpoint(fen: str):
     "moves": [],
     "games": [],
     "source": None,
+    "opening": None,
+    "documents": [],
     }
 
     try:
@@ -42,3 +45,16 @@ def get_opening_moves_endpoint(fen: str):
             raise HTTPException(status_code=502, detail="Lichess a renvoyé une erreur.")
     except httpx.RequestError:
             raise HTTPException(status_code=502, detail="Impossible de contacter Lichess.") 
+
+@app.get("/api/v1/vector-search",response_model=VectorSearchResponse)
+def get_vector_search_endpoint(question:str, limit: int = 3):
+
+    try:
+        passages = search_documents(question, limit)
+        return {
+              "question" : question,
+              "results": passages,
+        }
+    except ValueError as erreur:
+            raise HTTPException(status_code=400, detail=str(erreur))
+

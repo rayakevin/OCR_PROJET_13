@@ -12,8 +12,11 @@ wheels/
 # Environment variables
 .env
 
-# Exploration scripts
+# Explorations et tests manuels internes (outils reproductibles : backend/app/commands/)
 scripts/
 
 # Personal documentation (tutorials, notes, etc.)
 output/personal/
+
+data/
+volumes/

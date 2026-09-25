@@ -33,6 +33,14 @@ class GameReference(BaseModel):
     winner: Literal["white","black",None]
     month: str
 
+class DocumentSearchResult(BaseModel) :
+    id: str
+    title : str
+    section_path: list[str]
+    text: str
+    source_url: str
+    score: float
+    
 class OpeningMovesResponse(BaseModel):
     fen: str
     game_over: bool
@@ -40,4 +48,11 @@ class OpeningMovesResponse(BaseModel):
     source: Literal["lichess","stockfish", None]
     moves: list[LichessMove] | list[StockfishMove]
     games : list[GameReference]
+    opening: dict[str, str] | None
+    documents: list[DocumentSearchResult]
 
+
+
+class VectorSearchResponse(BaseModel) : 
+    question: str
+    results: list[DocumentSearchResult]

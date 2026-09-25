@@ -4,6 +4,8 @@ from langgraph.graph import StateGraph, START, END
 from backend.app.services.chess_service import inspect_position
 from backend.app.services.lichess_service import get_opening_moves
 from backend.app.services.stockfish_service import analyse_position
+from backend.app.services.opening_service import get_opening_title
+from backend.app.services.vector_search_service import search_documents
 
 
 class ChessState(TypedDict):
@@ -13,6 +15,8 @@ class ChessState(TypedDict):
     moves: list[dict]
     games: list[dict]
     source : str | None
+    opening: dict [str,str] | None
+    documents: list[dict]
 
 def validate_position(state : ChessState):
     fen = state["fen"]
@@ -22,12 +26,14 @@ def validate_position(state : ChessState):
         "termination": position["termination"],
     }
 
-def fetch_lichess(state : ChessState) :
-    coups,parties = get_opening_moves(state["fen"])
+def fetch_lichess(state: ChessState):
+    coups, parties, ouverture = get_opening_moves(state["fen"])
+
     return {
-        "moves":coups,
+        "moves": coups,
         "games": parties,
         "source": "lichess",
+        "opening": ouverture,
     }
 
 def route_after_validation(state: ChessState):
@@ -45,8 +51,21 @@ def analyse_stockfish(state: ChessState):
 
 def route_after_fetch(state: ChessState):
     if state["moves"]:
-        return END
+        return "documents"
     return "stockfish"
+
+def fetch_documents(state: ChessState):
+    titre = get_opening_title(state["opening"])
+    if titre : 
+            passages = search_documents(
+        question=f"Quels sont les principes et les plans de {titre} ?",
+        opening_title=titre,
+        limit=3,
+    )
+            return {"documents": passages}
+    else :
+            return {"documents": []}
+
 
 builder = StateGraph(ChessState)
 builder.add_node("validation", validate_position)
@@ -56,6 +75,8 @@ builder.add_node("fetch",fetch_lichess)
 builder.add_conditional_edges("fetch", route_after_fetch)
 builder.add_node("stockfish",analyse_stockfish)
 builder.add_edge("stockfish",END)
+builder.add_node("documents", fetch_documents)
+builder.add_edge("documents", END)
 
 
 graph = builder.compile()

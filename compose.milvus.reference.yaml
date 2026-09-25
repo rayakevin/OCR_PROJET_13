@@ -1,24 +1,10 @@
+version: '3.5'
+
 x-milvus-image: &milvus-image milvusdb/milvus:v3.0.2
 
 services:
-  api:
-    build: .
-    ports:
-      - "127.0.0.1:${APP_PORT}:8080"
-    environment:
-      LICHESS_API_TOKEN: ${LICHESS_API_TOKEN}
-      MILVUS_URI: "http://standalone:19530"
-      EMBEDDING_DEVICE: "cpu"
-      HF_HUB_CACHE: "/models/hub"
-    
-    volumes:
-      - type: bind
-        source: /home/raya-kevin/.cache/huggingface/hub
-        target: /models/hub
-        read_only: true
-        bind:
-          create_host_path: false
-
+  # Remove the .milvus-volume-owner-* marker after restoring files owned by a
+  # different user so this one-shot migration runs again.
   milvus-volume-init:
     image: *milvus-image
     user: "0:0"
@@ -42,6 +28,7 @@ services:
       - ${DOCKER_VOLUME_DIRECTORY:-.}/volumes/milvus:/var/lib/milvus
 
   etcd:
+    container_name: milvus-etcd
     image: quay.io/coreos/etcd:v3.5.25
     environment:
       - ETCD_AUTO_COMPACTION_MODE=revision
@@ -58,13 +45,14 @@ services:
       retries: 3
 
   minio:
+    container_name: milvus-minio
     image: quay.io/minio/minio:RELEASE.2024-05-28T17-19-04Z
     environment:
       MINIO_ACCESS_KEY: minioadmin
       MINIO_SECRET_KEY: minioadmin
     ports:
-      - "127.0.0.1:9001:9001"
-      - "127.0.0.1:9000:9000"
+      - "9001:9001"
+      - "9000:9000"
     volumes:
       - ${DOCKER_VOLUME_DIRECTORY:-.}/volumes/minio:/minio_data
     command: minio server /minio_data --console-address ":9001"
@@ -75,6 +63,7 @@ services:
       retries: 3
 
   standalone:
+    container_name: milvus-standalone
     image: *milvus-image
     command: ["milvus", "run", "standalone"]
     security_opt:
@@ -92,8 +81,8 @@ services:
       timeout: 20s
       retries: 3
     ports:
-      - "127.0.0.1:19530:19530"
-      - "127.0.0.1:9091:9091"
+      - "19530:19530"
+      - "9091:9091"
     depends_on:
       milvus-volume-init:
         condition: service_completed_successfully
@@ -101,3 +90,7 @@ services:
         condition: service_started
       minio:
         condition: service_started
+
+networks:
+  default:
+    name: milvus
