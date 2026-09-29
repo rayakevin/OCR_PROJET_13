@@ -7,6 +7,7 @@ from backend.app.services.stockfish_service import analyse_position
 from backend.app.services.opening_service import get_opening_title
 from backend.app.services.vector_search_service import search_documents
 from backend.app.services.youtube_service import search_videos
+from backend.app.services.generation_service import generate_explanation
 
 
 class ChessState(TypedDict):
@@ -19,6 +20,7 @@ class ChessState(TypedDict):
     opening: dict [str,str] | None
     documents: list[dict]
     videos: list[dict]
+    explanation: dict | None
 
 def validate_position(state : ChessState):
     fen = state["fen"]
@@ -81,6 +83,20 @@ def fetch_documents(state: ChessState):
             return {"documents": []}
 
 
+def explain_opening(state: ChessState):
+    titre = get_opening_title(state["opening"])
+
+    if not titre or not state["documents"]:
+        return {"explanation": None}
+
+    explication = generate_explanation(
+        question=f"Quels sont les principes et les plans de {titre} ?",
+        documents=state["documents"],
+    )
+
+    return {"explanation": explication.model_dump()}
+
+
 builder = StateGraph(ChessState)
 builder.add_node("validation", validate_position)
 builder.add_edge(START, "validation")
@@ -92,7 +108,9 @@ builder.add_edge("stockfish",END)
 builder.add_node("documents", fetch_documents)
 builder.add_node("videos", fetch_videos)
 builder.add_edge("documents", "videos")
-builder.add_edge("videos", END)
+builder.add_node("explanation", explain_opening)
+builder.add_edge("videos", "explanation")
+builder.add_edge("explanation", END)
 
 
 graph = builder.compile()

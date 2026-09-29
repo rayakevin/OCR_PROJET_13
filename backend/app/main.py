@@ -12,6 +12,9 @@ from backend.app.graphs.chess_graph import graph
 
 from googleapiclient.errors import HttpError
 
+from openai import APIError, APITimeoutError
+from pydantic import ValidationError
+
 
 app = FastAPI()
 
@@ -39,10 +42,30 @@ def get_opening_moves_endpoint(fen: str):
     "opening": None,
     "documents": [],
     "videos": [],
+    "explanation": None,
     }
 
     try:
         return graph.invoke(etat_initial)
+
+    except APITimeoutError:
+        raise HTTPException(
+            status_code=504,
+            detail="La génération Groq ne répond pas à temps.",
+        )
+
+    except APIError:
+        raise HTTPException(
+            status_code=502,
+            detail="La génération Groq a échoué.",
+        )
+
+    except ValidationError:
+        raise HTTPException(
+            status_code=502,
+            detail="La réponse générée ne respecte pas le format attendu.",
+        )
+
     except ValueError as erreur:
             raise HTTPException(status_code=400, detail=str(erreur))
     except httpx.TimeoutException:

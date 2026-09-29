@@ -48,6 +48,19 @@ class VideoReference (BaseModel) :
     channel: str
     url: str
 
+class ExplanationClaim(BaseModel):
+    claim: str
+    source_id: int
+    evidence: str
+
+
+class ExplanationResponse(BaseModel):
+    claims: list[ExplanationClaim]
+    limitation: Literal[
+        "none",
+        "no_strategic_plans",
+        "insufficient_context",
+    ]
 class OpeningMovesResponse(BaseModel):
     fen: str
     game_over: bool
@@ -58,6 +71,7 @@ class OpeningMovesResponse(BaseModel):
     opening: dict[str, str] | None
     documents: list[DocumentSearchResult]
     videos: list[VideoReference]
+    explanation: ExplanationResponse | None = None
 
 
 
@@ -69,3 +83,4 @@ class VectorSearchResponse(BaseModel) :
 class VideoSearchResponse (BaseModel) : 
     opening : str
     videos : list [VideoReference]
+

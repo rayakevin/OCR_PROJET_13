@@ -80,6 +80,37 @@ les trois cas. Le bilan indique si l'ouverture attendue apparaît dans les trois
 premiers résultats, en séparant les erreurs techniques des résultats non pertinents.
 Cette évaluation ne mesure ni la qualité des explications ni le routage FEN du graphe.
 
+## Évaluer la génération documentaire
+
+La campagne compare des modèles Groq et des consignes de génération, avec des
+contextes identiques pour les 30 ouvertures et un contrôle Python des preuves
+textuelles. Le classement utilise les vecteurs existants en cosine exact,
+sans reconstruire Docker ni réindexer Milvus.
+
+```bash
+# Première campagne seulement : prépare les cas figés (modèle local, CUDA).
+uv run python -m backend.app.commands.evaluate_generation prepare
+
+# Appels Groq : consomment le quota de GROQ_API_KEY ; reprise des cas déjà terminés.
+uv run python -m backend.app.commands.evaluate_generation run --configs gpt20_low qwen_low --interval 40
+
+# Recalcule les contrôles et produit les réponses lisibles, sans appel réseau.
+uv run python -m backend.app.commands.evaluate_generation summarize
+```
+
+Les sorties sont dans `data/generation_evaluation/` : cas, réponses brutes,
+`summary.json` et `checked_*.md`. Pour une nouvelle campagne,
+passer `--output data/autre_campagne` **avant** la sous-commande. Les prompts et
+paramètres sont enregistrés ; changer les paramètres exige un dossier séparé.
+La préparation refuse d'écraser des cas déjà utilisés.
+
+Le sous-programme `review` conserve une expérience de relecture LLM non retenue :
+elle n'a pas détecté les erreurs ciblées. Les fichiers historiques `validated_*`
+ne sont pas un label de fiabilité. Les contrôles de citations ne garantissent ni
+la fidélité des reformulations ni la pertinence pour une position FEN précise. Le rapport
+[d'évaluation](reports/generation-rag-2026-09-25.md) distingue ces limites des
+mesures techniques et expose les choix retenus.
+
 ## Développer sans reconstruire Docker
 
 ```bash
