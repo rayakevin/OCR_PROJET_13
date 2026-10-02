@@ -4,6 +4,9 @@ import httpx
 import json
 from fastapi.responses import JSONResponse
 from backend.app.services.embedding_service import EmbeddingError
+from backend.app.services.youtube_service import YouTubeError
+from pymilvus.exceptions import MilvusException
+from backend.app.services.stockfish_service import StockfishError
 
 from backend.app.services.chess_service import inspect_position
 from backend.app.services.vector_search_service import search_documents
@@ -36,9 +39,25 @@ app = FastAPI()
 
 
 @app.exception_handler(EmbeddingError)
-async def embedding_error_handler(request, erreur: EmbeddingError):
+@app.exception_handler(YouTubeError)
+async def external_service_error_handler(request, erreur):
     """Expose le même message maîtrisé pour la recherche, le graphe et la sauvegarde."""
     return JSONResponse(status_code=erreur.status_code, content={"detail": str(erreur)})
+
+
+@app.exception_handler(StockfishError)
+async def stockfish_error_handler(request, erreur: StockfishError):
+    """Retourne une indisponibilité explicite au lieu d'une erreur moteur brute."""
+    return JSONResponse(status_code=503, content={"detail": str(erreur)})
+
+
+@app.exception_handler(MilvusException)
+async def milvus_error_handler(request, erreur: MilvusException):
+    """Masque les détails internes de Milvus sur toutes les routes de recherche."""
+    return JSONResponse(
+        status_code=503,
+        content={"detail": "La recherche documentaire est indisponible."},
+    )
 
 @app.get("/api/v1/healthcheck")
 async def healthcheck():

@@ -1,6 +1,11 @@
 import chess
 import chess.engine
 
+
+class StockfishError(Exception):
+    """Le moteur n'a pas pu produire de résultat exploitable."""
+
+
 def analyse_position(fen):
     """Analyse une FEN pendant une seconde avec le binaire /usr/games/stockfish.
 
@@ -9,10 +14,11 @@ def analyse_position(fen):
     la position avant ce calcul. Le moteur est fermé même si l'analyse échoue.
     """
     board = chess.Board(fen)
-    engine = chess.engine.SimpleEngine.popen_uci("/usr/games/stockfish")
-
     try:
-        info = engine.analyse(board, chess.engine.Limit(time=1.0))
+        with chess.engine.SimpleEngine.popen_uci(
+            "/usr/games/stockfish", timeout=10.0,
+        ) as engine:
+            info = engine.analyse(board, chess.engine.Limit(time=1.0))
         variante = info.get("pv", [])
         premier_coup = variante[0] if variante else None
         score_blancs = info["score"].white()
@@ -22,5 +28,7 @@ def analyse_position(fen):
             "score_cp": score_blancs.score(),
             "mate": score_blancs.mate(),
         }
-    finally:
-        engine.quit()
+    except TimeoutError:
+        raise StockfishError("Le moteur Stockfish ne répond pas à temps.") from None
+    except (OSError, chess.engine.EngineError):
+        raise StockfishError("Le moteur Stockfish est indisponible.") from None

@@ -1,6 +1,15 @@
 import os
 from dotenv import load_dotenv
 from googleapiclient.discovery import build
+import httplib2
+
+
+class YouTubeError(Exception):
+    """Erreur de transport publique, sans détails sensibles du fournisseur."""
+
+    def __init__(self, message: str, status_code: int = 502):
+        super().__init__(message)
+        self.status_code = status_code
 
 
 def search_videos(opening: str, limit: int = 3) -> list[dict]:
@@ -23,17 +32,26 @@ def search_videos(opening: str, limit: int = 3) -> list[dict]:
     if not api_youtube :
         raise RuntimeError("La variable YOUTUBE_API_KEY est absente ou vide.")
  
-    youtube = build("youtube", "v3", developerKey=api_youtube)
-
-    requete = youtube.search().list(
-    part="snippet",
-    q=f"{opening} échecs explication",
-    type="video",
-    maxResults=limit,
-    relevanceLanguage="fr",
-    )
- 
-    response = requete.execute()
+    transport = httplib2.Http(timeout=15)
+    try:
+        youtube = build(
+            "youtube", "v3", developerKey=api_youtube,
+            http=transport, cache_discovery=False,
+        )
+        requete = youtube.search().list(
+            part="snippet",
+            q=f"{opening} échecs explication",
+            type="video",
+            maxResults=limit,
+            relevanceLanguage="fr",
+        )
+        response = requete.execute(num_retries=0)
+    except TimeoutError:
+        raise YouTubeError("YouTube ne répond pas à temps.", 504) from None
+    except (OSError, httplib2.HttpLib2Error):
+        raise YouTubeError("Impossible de contacter YouTube.") from None
+    finally:
+        transport.close()
     videos = []
 
     for item in response["items"]:

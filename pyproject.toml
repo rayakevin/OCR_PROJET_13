@@ -8,6 +8,7 @@ dependencies = [
     "beautifulsoup4>=4.15.0",
     "fastapi[standard]>=0.141.1",
     "google-api-python-client>=2.200.0",
+    "httplib2>=0.32.0",
     "httpx>=0.28.1",
     "huggingface-hub>=1.32.0",
     "langchain>=1.4.2",

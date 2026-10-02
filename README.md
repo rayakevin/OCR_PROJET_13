@@ -236,6 +236,29 @@ seconde commande pour un simple redémarrage.
 
 ## Vérifications manuelles et limites
 
+### Tests automatisés hors réseau
+
+```bash
+uv run python -m unittest discover -s tests -v
+```
+
+Les 22 tests versionnés utilisent `unittest` (bibliothèque standard) et le
+TestClient FastAPI. Le vrai graphe est exécuté, avec ses services externes et
+le stockage simulés : aucune clé, base, modèle local ou instance Docker n'est
+nécessaire. Ils couvrent les FEN invalides, la fin de partie, le catalogue Lichess,
+le repli Stockfish, les ressources absentes et les erreurs de services.
+Ils vérifient aussi qu'un échec n'est pas enregistré dans MongoDB et que la route
+GET ne sauvegarde rien. Les tests de transport vérifient la fermeture des ressources.
+Ils complètent les essais réels ; ils ne mesurent pas la pertinence des fournisseurs.
+
+Une panne Lichess reste une erreur, pas une preuve d'absence de coups théoriques.
+Un échec d'enrichissement interrompt actuellement l'analyse : aucune réponse
+partielle n'est enregistrée. Milvus indisponible et Stockfish défaillant renvoient
+503 ; le transport YouTube utilise un timeout de 15 secondes, renvoie 504 en cas
+de délai dépassé et 502 en cas d'erreur réseau. Les détails internes sont masqués.
+
+### Vérifications manuelles
+
 - **Partie terminée** : `8/8/8/8/8/2k5/8/K7 w - - 0 1` ; aucun appel Lichess,
   Stockfish, documentaire ou vidéo. Le POST doit enregistrer le résultat.
 - **Défense française** : `rnbqkbnr/ppp2ppp/4p3/3p4/3PP3/8/PPP2PPP/RNBQKBNR w KQkq - 0 3` ;
@@ -256,9 +279,14 @@ ne constitue pas une analyse tactique détaillée de la FEN. Le filtre documenta
 ne couvre que les correspondances présentes dans `opening_service.py`. Une FEN
 ne contient pas l'historique nécessaire pour détecter toutes les répétitions.
 
-À finaliser pour la livraison : essai complet de première installation sur une
-autre machine, test de persistance après recréation, validation de la branche Stockfish et étude
-vidéo/MCP. Les routes séparées moves/evaluate évoquées dans le sujet ne sont pas
+Installation sur bases vierges et persistance après recréation validées le
+2 octobre 2026 sur le même poste, avec les images existantes et le corpus versionné.
+Le parcours réel hors catalogue vers Stockfish a également été vérifié.
+À finaliser pour la livraison : essai sur une autre machine, exposition via
+Hugging Face Spaces et étude vidéo/MCP. Les substitutions Wikipédia français
+pour Wikichess et Chessground + chess.js pour ngx-chessboard ont été validées
+avec le mentor, selon confirmation de l'étudiant.
+Les routes séparées moves/evaluate évoquées dans le sujet ne sont pas
 exposées à l'identique : l'analyse est actuellement regroupée dans le graphe.
 
 ## Organisation
@@ -273,6 +301,7 @@ backend/app/
 frontend/                # Angular : échiquier, panneau et services HTTP
 resources/corpus/        # Lot versionné prêt à importer, empreinte et attribution
 scripts/                 # Explorations et tests manuels internes, ignorés par Git
+tests/                   # Tests automatisés reproductibles, versionnés
 data/                    # Corpus, caches et vecteurs générés, ignorés par Git
 ```
 
