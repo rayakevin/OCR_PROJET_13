@@ -1,6 +1,10 @@
 .venv/
 .git/
 .env
+.env.*
 volumes/
 frontend/
 output/
+data/
+scripts/
+**/__pycache__/

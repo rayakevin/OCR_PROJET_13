@@ -8,6 +8,12 @@ from bson.errors import InvalidId
 
 
 def save_analysis(fen: str, result: dict) -> str:
+    """Insère une analyse dans chess_coach.analyses et renvoie son ObjectId en texte.
+
+    Le résultat doit déjà être validé par l'appelant. La date est produite en UTC
+    et chaque appel crée un nouveau document. Les erreurs PyMongo remontent
+    à la couche HTTP ; le client est fermé à la sortie du bloc with.
+    """
     uri = os.getenv("MONGODB_URI", "mongodb://127.0.0.1:27017")
 
     with MongoClient(uri, serverSelectionTimeoutMS=5000) as client:
@@ -24,6 +30,12 @@ def save_analysis(fen: str, result: dict) -> str:
         return str(insertion.inserted_id)
 
 def get_analysis(analysis_id: str) -> dict | None:
+    """Retrouve un document par identifiant, ou renvoie None s'il est absent.
+
+    Lève ValueError pour un identifiant texte mal formé. Convertit _id en str,
+    mais conserve created_at comme datetime (UTC sans tzinfo avec ce client).
+    FastAPI assure ensuite la sérialisation de la date.
+    """
     try:
         mongo_id = ObjectId(analysis_id)
     except InvalidId as erreur:
@@ -44,6 +56,12 @@ def get_analysis(analysis_id: str) -> dict | None:
 
 
 def list_analyses(limit: int = 10) -> list[dict]:
+    """Liste les résumés du plus récent au plus ancien, sans charger result.
+
+    L'appelant doit fournir une limite positive ; la route la borne à 1..50.
+    _id départage les dates égales. Les dates restent des datetime UTC avec
+    fuseau et les identifiants sont convertis en texte.
+    """
     uri = os.getenv("MONGODB_URI", "mongodb://127.0.0.1:27017")
 
     with MongoClient(

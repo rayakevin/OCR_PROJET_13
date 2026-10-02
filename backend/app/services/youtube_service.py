@@ -5,6 +5,12 @@ from googleapiclient.discovery import build
 
 def search_videos(opening: str, limit: int = 3) -> list[dict]:
 
+    """Renvoie jusqu'à limit liens vidéo pour une ouverture (limite de 1 à 5).
+
+    Privilégie les résultats en français sans garantir leur langue ou leur qualité.
+    Lève ValueError pour les paramètres invalides et RuntimeError sans clé API.
+    Les erreurs YouTube remontent à l'appelant ; cet appel consomme du quota.
+    """
     opening = opening.strip()
     if not opening:
         raise ValueError("Le nom d'ouverture renseignée est vide")

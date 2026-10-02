@@ -2,6 +2,12 @@ import chess
 import chess.engine
 
 def analyse_position(fen):
+    """Analyse une FEN pendant une seconde avec le binaire /usr/games/stockfish.
+
+    Renvoie le premier coup UCI/SAN et le score du point de vue des Blancs :
+    score_cp en centipions, ou mate pour une annonce de mat. L'appelant valide
+    la position avant ce calcul. Le moteur est fermé même si l'analyse échoue.
+    """
     board = chess.Board(fen)
     engine = chess.engine.SimpleEngine.popen_uci("/usr/games/stockfish")
 

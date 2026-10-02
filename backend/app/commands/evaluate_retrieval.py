@@ -29,6 +29,7 @@ cas_de_test = [
 
 
 def main() -> None:
+    """Exécute les cas de recherche et affiche leur bilan de pertinence et d’erreurs."""
     parser = argparse.ArgumentParser(description=__doc__)
     parser.parse_args()
     reussites = 0

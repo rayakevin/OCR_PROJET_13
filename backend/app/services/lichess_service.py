@@ -7,6 +7,13 @@ lichess_api_token = os.getenv("LICHESS_API_TOKEN")
 
 def get_opening_moves(fen): 
 
+    """Interroge le catalogue masters et renvoie (coups, parties, ouverture).
+
+    Demande jusqu'à trois coups et deux parties. La fréquence est la proportion
+    des parties de cette position ayant joué le coup, pas un taux de victoire.
+    Une liste vide ne prouve pas que la position est inconnue de toute théorie.
+    Les erreurs HTTP et réseau sont propagées à l'appelant.
+    """
     response = httpx.get("https://explorer.lichess.org/masters",    
                         headers={"Authorization": f"Bearer {lichess_api_token}"},
                         params = {"fen": fen,"topGames": 2,"recentGames": 0, "moves":3})

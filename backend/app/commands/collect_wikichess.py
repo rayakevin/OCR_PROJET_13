@@ -22,6 +22,7 @@ ARTICLES = [
 
 
 def main() -> None:
+    """Collecte les articles de référence et écrit le fichier JSON demandé."""
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output", type=Path, default=DATA_DIR / "wikichess.json")
     args = parser.parse_args()

@@ -2,6 +2,8 @@ from fastapi import FastAPI
 from fastapi import HTTPException
 import httpx
 import json
+from fastapi.responses import JSONResponse
+from backend.app.services.embedding_service import EmbeddingError
 
 from backend.app.services.chess_service import inspect_position
 from backend.app.services.vector_search_service import search_documents
@@ -32,12 +34,20 @@ from backend.app.services.analysis_repository import (
 
 app = FastAPI()
 
+
+@app.exception_handler(EmbeddingError)
+async def embedding_error_handler(request, erreur: EmbeddingError):
+    """Expose le même message maîtrisé pour la recherche, le graphe et la sauvegarde."""
+    return JSONResponse(status_code=erreur.status_code, content={"detail": str(erreur)})
+
 @app.get("/api/v1/healthcheck")
 async def healthcheck():
+    """Confirme que FastAPI répond, sans sonder les services externes."""
     return {"message": "API is healthy!"}
 
 @app.get("/api/v1/position", response_model=PositionResponse)
 async def get_position(fen: str):
+    """Valide la FEN et expose le statut de la partie ; une FEN invalide produit un HTTP 400."""
     try:
         return inspect_position(fen)
     except ValueError as erreur:
@@ -45,6 +55,12 @@ async def get_position(fen: str):
 
 def run_analysis(fen: str):
 
+    """Exécute le graphe commun aux routes GET et POST.
+
+    Initialise les ressources vides et traduit les exceptions prises en charge
+    ici en erreurs HTTP. Cette fonction ne persiste aucun résultat ; le POST
+    se charge ensuite de valider et d'enregistrer la réponse.
+    """
     etat_initial = {
     "fen": fen,
     "game_over": False,
@@ -94,11 +110,13 @@ def run_analysis(fen: str):
 
 @app.get("/api/v1/opening-moves", response_model=OpeningMovesResponse)
 def get_opening_moves_endpoint(fen: str):
+    """Calcule une analyse sans la sauvegarder dans MongoDB."""
     return run_analysis(fen)
 
 @app.get("/api/v1/vector-search",response_model=VectorSearchResponse)
 def get_vector_search_endpoint(question:str, limit: int = 3):
 
+    """Recherche des passages documentaires pour une question libre."""
     try:
         passages = search_documents(question, limit)
         return {
@@ -111,6 +129,7 @@ def get_vector_search_endpoint(question:str, limit: int = 3):
 
 @app.get("/api/v1/videos/{opening}", response_model=VideoSearchResponse)
 def get_videos_endpoint(opening: str, limit: int = 3):
+    """Recherche des vidéos pour un nom d’ouverture, indépendamment du graphe."""
     try :
         videos=search_videos(opening, limit)
         
@@ -130,6 +149,7 @@ def get_videos_endpoint(opening: str, limit: int = 3):
 
 @app.get("/api/v1/analyses/{analysis_id}")
 def get_analysis_endpoint(analysis_id: str):
+    """Relit une analyse : 400 si ID mal formé, 404 si absent, 503 si connexion indisponible."""
     try:
         analyse = get_analysis(analysis_id)
     except ValueError as erreur:
@@ -157,6 +177,11 @@ def get_analysis_endpoint(analysis_id: str):
     status_code=201,
 )
 def create_analysis_endpoint(request: AnalysisRequest):
+    """Calcule, valide et enregistre une nouvelle analyse, puis répond en HTTP 201.
+
+    Chaque appel réussi crée un document distinct, même pour une FEN identique.
+    Une erreur de stockage empêche la réponse de succès, même si le calcul a abouti.
+    """
     resultat = run_analysis(request.fen)
 
     # Vérifier le résultat avant de l’enregistrer.
@@ -186,6 +211,7 @@ def create_analysis_endpoint(request: AnalysisRequest):
 
 @app.get("/api/v1/analyses")
 def list_analyses_endpoint(limit: int = Query(default=10, ge=1, le=50)):
+    """Renvoie les résumés les plus récents ; FastAPI borne limit entre 1 et 50."""
     try:
         return list_analyses(limit=limit)
     except ConnectionFailure as erreur:

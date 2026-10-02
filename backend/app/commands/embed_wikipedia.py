@@ -1,7 +1,7 @@
 """Encode le corpus français ; vérifie les fichiers existants avec --reuse.
 
-uv run python -m backend.app.commands.embed_wikipedia
-uv run python -m backend.app.commands.embed_wikipedia --reuse
+uv run --group local-embeddings python -m backend.app.commands.embed_wikipedia
+uv run --group local-embeddings python -m backend.app.commands.embed_wikipedia --reuse
 """
 
 import argparse
@@ -18,6 +18,7 @@ MODEL_ID = "Qwen/Qwen3-Embedding-0.6B"
 
 
 def main():
+    """Encode les chunks ou vérifie les vecteurs existants selon les options de la commande."""
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--reuse", action="store_true", help="Recharger les vecteurs après vérification du corpus")
     parser.add_argument("--device", default="cuda", choices=["cuda", "cpu"])

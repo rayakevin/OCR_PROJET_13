@@ -35,6 +35,7 @@ ARTICLES = [f"https://fr.wikipedia.org/wiki/{quote(page)}" for page in PAGES]
 
 
 def document_valide(document):
+    """Vérifie les champs et blocs requis pour réutiliser une copie française du cache."""
     if not isinstance(document, dict):
         return False
 
@@ -67,6 +68,7 @@ def document_valide(document):
 
 
 def collecter(dossier: Path, refresh=False, articles=None, delai=1.0):
+    """Collecte avec cache et reprise, puis renvoie les documents et les erreurs rencontrées."""
     articles = ARTICLES if articles is None else articles
     documents = {}  # Identifiant canonique : évite les doublons après redirection.
     erreurs = []
@@ -128,6 +130,7 @@ def collecter(dossier: Path, refresh=False, articles=None, delai=1.0):
 
 
 def main():
+    """Collecte le corpus puis produit les chunks, uniquement si la collecte est complète."""
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--refresh", action="store_true", help="Actualiser les copies locales")
     parser.add_argument("--data-dir", type=Path, default=WIKIPEDIA_DIR)

@@ -72,15 +72,15 @@ export interface AnalysisCreatedResponse {
   result: OpeningMovesResponse;
 }
 
-export interface AnalysisSummary {
-  _id: string;
-  fen: string;
-  created_at: string;
-}
-
 export interface SavedAnalysis {
   _id: string;
   fen: string;
   created_at: string;
   result: OpeningMovesResponse;
+}
+
+export interface AnalysisSummary {
+  _id: string;
+  fen: string;
+  created_at: string;
 }

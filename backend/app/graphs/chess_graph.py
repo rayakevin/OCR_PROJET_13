@@ -23,6 +23,7 @@ class ChessState(TypedDict):
     explanation: dict | None
 
 def validate_position(state : ChessState):
+    """Valide la FEN et ne met à jour que les champs liés à la fin de partie."""
     fen = state["fen"]
     position = inspect_position(fen)
     return {
@@ -31,6 +32,7 @@ def validate_position(state : ChessState):
     }
 
 def fetch_lichess(state: ChessState):
+    """Ajoute les coups du catalogue, les parties de référence et le nom de l’ouverture."""
     coups, parties, ouverture = get_opening_moves(state["fen"])
 
     return {
@@ -41,11 +43,13 @@ def fetch_lichess(state: ChessState):
     }
 
 def route_after_validation(state: ChessState):
+    """Arrête le graphe si la partie est terminée ; sinon interroge Lichess."""
     if state["game_over"]:
         return END
     return "fetch"
 
 def analyse_stockfish(state: ChessState):
+    """Produit une suggestion moteur lorsque Lichess ne fournit aucun coup."""
     coups = analyse_position(state["fen"])
     return {
         "moves": [coups],
@@ -54,11 +58,13 @@ def analyse_stockfish(state: ChessState):
         }
 
 def route_after_fetch(state: ChessState):
+    """Choisit les ressources documentaires si des coups existent, sinon Stockfish."""
     if state["moves"]:
         return "documents"
     return "stockfish"
 
 def fetch_videos(state: ChessState):
+    """Recherche des vidéos si le nom Lichess possède une correspondance française."""
     titre = get_opening_title(state["opening"])
     if titre : 
         videos = search_videos(
@@ -71,6 +77,7 @@ def fetch_videos(state: ChessState):
             return {"videos": []}
 
 def fetch_documents(state: ChessState):
+    """Recherche les principes et plans dans le corpus filtré par ouverture."""
     titre = get_opening_title(state["opening"])
     if titre : 
             passages = search_documents(
@@ -84,6 +91,7 @@ def fetch_documents(state: ChessState):
 
 
 def explain_opening(state: ChessState):
+    """Génère une explication documentaire de l’ouverture, ou None sans contexte couvert."""
     titre = get_opening_title(state["opening"])
 
     if not titre or not state["documents"]:

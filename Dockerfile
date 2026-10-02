@@ -1,26 +1,26 @@
-FROM python:3.12
+FROM python:3.12-slim
+
+# Version fixe ; uv reste accessible aussi à l'utilisateur non privilégié.
+COPY --from=ghcr.io/astral-sh/uv:0.11.15 /uv /usr/local/bin/uv
+
 WORKDIR /app
-# The installer requires curl (and certificates) to download the release archive
-RUN apt-get update && apt-get install -y --no-install-recommends curl ca-certificates stockfish
+ENV PATH="/app/.venv/bin:$PATH" \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1
 
-# Download the latest installer
-ADD https://astral.sh/uv/install.sh /uv-installer.sh
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends ca-certificates stockfish \
+    && rm -rf /var/lib/apt/lists/*
 
-# Run the installer then remove it
-RUN sh /uv-installer.sh && rm /uv-installer.sh
+# Cette couche reste en cache quand seul le code change.
+# Aucun groupe optionnel : pas de sentence-transformers, PyTorch ou CUDA.
+COPY pyproject.toml uv.lock ./
+RUN uv sync --locked --no-default-groups --no-install-project --no-cache
 
-# Ensure the installed binary is on the `PATH`
-ENV PATH="/root/.local/bin/:$PATH"
-ENV PATH="/app/.venv/bin/:$PATH"
+# L'API n'a pas besoin des scripts, corpus locaux ou artefacts d'évaluation.
+COPY backend ./backend
 
-# Copy the project into the image
-COPY . .
-
-# Sync the project into a new environment, asserting the lockfile is up to date
-RUN uv sync --locked
-
-# Setup an app user so the container doesn't run as the root user
-RUN useradd app
+RUN useradd --create-home app
 USER app
 
 CMD ["uvicorn", "backend.app.main:app", "--host", "0.0.0.0", "--port", "8080"]

@@ -13,6 +13,7 @@ from backend.app.services.generation_config import (
 )
 
 def construire_contexte(documents: list[dict]) -> str:
+    """Assemble les extraits numérotés à partir de 1 avec sections et URLs sources."""
     passages = []
     for numero, document in enumerate(documents, start=1):
         section = " > ".join(document.get("section_path") or [])
@@ -30,6 +31,11 @@ def verifier_citations(
     explication: ExplanationResponse,
     documents: list[dict],
 ) -> ExplanationResponse:
+    """Écarte les affirmations sans source valide ou sans preuve textuelle retrouvée.
+
+    Seuls les espaces sont normalisés. Ce contrôle ne démontre ni la vérité
+    du document ni la fidélité sémantique de la reformulation du modèle.
+    """
     affirmations_valides = []
 
     for affirmation in explication.claims:
@@ -72,6 +78,12 @@ def generate_explanation(
     documents: list[dict],
 ) -> ExplanationResponse:
     # Sans documents, aucune génération n'est nécessaire.
+    """Génère via Groq une réponse structurée, puis contrôle ses citations.
+
+    Sans documents, renvoie une limitation sans appel externe. Lève RuntimeError
+    si la clé manque ou si la génération est incomplète ; les erreurs du client
+    et de validation Pydantic restent visibles pour la couche HTTP.
+    """
     if not documents:
         return ExplanationResponse(
             claims=[],

@@ -114,6 +114,7 @@ def preparer_collection(client: MilvusClient) -> None:
 
 
 def main():
+    """Vérifie les données puis les importe, sauf en mode de contrôle seul."""
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--data-dir", type=Path, default=WIKIPEDIA_DIR)
     parser.add_argument("--check-only", action="store_true", help="Vérifier les fichiers sans contacter Milvus")

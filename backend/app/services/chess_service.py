@@ -2,6 +2,11 @@ import chess
 
 def inspect_position(fen):
     
+    """Valide une FEN et renvoie le trait, les coups légaux et l'issue éventuelle.
+
+    Lève ValueError si la notation ou la position est invalide. Une FEN seule
+    ne reconstitue pas l'historique nécessaire à la détection des répétitions.
+    """
     try:
         board = chess.Board(fen)
     except ValueError :

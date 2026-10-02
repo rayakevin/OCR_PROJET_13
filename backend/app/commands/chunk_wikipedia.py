@@ -13,6 +13,7 @@ from backend.app.services.chunking_service import chunk_documents
 
 
 def main() -> None:
+    """Lit le corpus local et écrit ses chunks dans le dossier choisi en ligne de commande."""
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--data-dir", type=Path, default=WIKIPEDIA_DIR)
     args = parser.parse_args()

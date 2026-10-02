@@ -9,21 +9,12 @@ services:
       LICHESS_API_TOKEN: ${LICHESS_API_TOKEN}
       MILVUS_URI: "http://standalone:19530"
       MONGODB_URI: "mongodb://mongodb:27017"
-      EMBEDDING_DEVICE: "cpu"
-      HF_HUB_CACHE: "/models/hub"
+      HF_TOKEN: ${HF_TOKEN}
       YOUTUBE_API_KEY: ${YOUTUBE_API_KEY}
       GROQ_API_KEY: ${GROQ_API_KEY}
     depends_on:
       mongodb:
         condition: service_healthy
-
-    volumes:
-      - type: bind
-        source: /home/raya-kevin/.cache/huggingface/hub
-        target: /models/hub
-        read_only: true
-        bind:
-          create_host_path: false
 
   milvus-volume-init:
     image: *milvus-image
@@ -121,5 +112,26 @@ services:
       retries: 5
       start_period: 20s
 
+  frontend:
+    build: ./frontend
+    ports:
+      - "127.0.0.1:4200:80"
+    depends_on:
+      - api
+
+  embedding-init:
+    image: ${COMPOSE_PROJECT_NAME:-projet_13}-api
+    pull_policy: never
+    profiles:
+      - setup
+    user: "0:0"
+    environment:
+      HF_HUB_CACHE: "/models/hub"
+    volumes:
+      - embedding_cache:/models/hub
+      - ./backend/app/commands/download_embedding_model.py:/tmp/download_embedding_model.py:ro
+    command: ["python", "/tmp/download_embedding_model.py"]
+
 volumes:
   mongodb_data:
+  embedding_cache:
