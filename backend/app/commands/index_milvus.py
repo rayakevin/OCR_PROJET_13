@@ -6,6 +6,7 @@ Un nouvel import remplace les entrées portant les mêmes identifiants.
 """
 
 import argparse
+from contextlib import nullcontext
 import hashlib
 import json
 import os
@@ -14,6 +15,7 @@ from pathlib import Path
 import numpy as np
 from pymilvus import DataType, MilvusClient
 from backend.app.commands._common import WIKIPEDIA_DIR
+from backend.app.commands._corpus_bundle import ouvrir_lot
 
 
 MILVUS_URI = os.getenv("MILVUS_URI", "http://127.0.0.1:19530")
@@ -116,11 +118,14 @@ def preparer_collection(client: MilvusClient) -> None:
 def main():
     """Vérifie les données puis les importe, sauf en mode de contrôle seul."""
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--data-dir", type=Path, default=WIKIPEDIA_DIR)
+    source = parser.add_mutually_exclusive_group()
+    source.add_argument("--data-dir", type=Path, default=WIKIPEDIA_DIR)
+    source.add_argument("--bundle", type=Path, help="Archive ZIP accompagnée de son .sha256")
     parser.add_argument("--check-only", action="store_true", help="Vérifier les fichiers sans contacter Milvus")
     args = parser.parse_args()
     # Valider les fichiers avant toute connexion ou écriture dans Milvus.
-    entrees = charger_entrees(args.data_dir)
+    with ouvrir_lot(args.bundle) if args.bundle else nullcontext(args.data_dir) as dossier:
+        entrees = charger_entrees(dossier)
     print(f"Fichiers vérifiés : {len(entrees)} entrées, dimension {DIMENSION}.")
     if args.check_only:
         return

@@ -6,5 +6,6 @@ volumes/
 frontend/
 output/
 data/
+resources/corpus/
 scripts/
 **/__pycache__/

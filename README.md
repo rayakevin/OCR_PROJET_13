@@ -27,8 +27,8 @@ Milvus reçoit le vecteur normalisé à 1024 dimensions. La génération est dis
 
 **État actuel :** frontend Nginx, backend et bases dans Docker Compose. Le frontend
 peut aussi être lancé avec `npm start` en développement. L’API ne nécessite plus
-de modèle local, mais le corpus doit être indexé dans Milvus : son initialisation
-n’est pas encore entièrement automatisée depuis un clone vierge.
+de modèle local. Un lot versionné de 339 passages permet d’initialiser Milvus
+sans collecte ni recalcul, avec la commande explicite `corpus-init` ci-dessous.
 
 ## Prérequis et configuration
 
@@ -71,9 +71,36 @@ MongoDB utilise `mongo:7.0` : l'image 8.0 essayée sur ce poste refusait de dém
 avec son noyau Linux. La base locale n'a pas d'authentification et son port est
 publié sur la boucle locale. Cette configuration est celle du POC local.
 
-## Lancer le POC actuel
+## Première installation depuis un clone
 
-Depuis la racine, après préparation et indexation du corpus (section suivante) :
+Configurer les clés dans `.env` comme indiqué plus haut, puis lancer depuis la
+racine du dépôt (le port 4200 doit être libre) :
+
+```bash
+# Construire les images. Le lot de corpus reste hors de l'image API.
+docker compose build api frontend
+
+# Vérifier le lot sans démarrer de base ni appeler les APIs externes.
+docker compose run --rm --no-deps corpus-init python -m backend.app.commands.index_milvus --bundle /corpus/chess-openings-fr-v1.zip --check-only
+
+# Démarrer Milvus et importer ; attendre la fin de cette commande avant la suite.
+docker compose run --rm corpus-init
+
+# Lancer le backend, MongoDB et l'interface.
+docker compose up -d api frontend
+```
+
+L'import attend Milvus healthy et doit afficher **339 entrées visibles** sur une
+collection neuve. Il ne télécharge aucun modèle et n'effectue aucun appel HF,
+Groq, YouTube ou Lichess. Les clés sont requises ensuite pour analyser des positions.
+Le lot et son empreinte sont dans [`resources/corpus/`](resources/corpus/README.md),
+à inclure au commit ; `data/` reste ignoré. Les sources et leur attribution sont
+conservées dans l'archive. L'import peut être relancé : les mêmes identifiants
+sont remplacés, sans effacer d'autres documents ni les analyses MongoDB.
+
+## Relancer le POC déjà initialisé
+
+Depuis la racine, une fois le corpus importé :
 
 ```bash
 # Démarrer les bases ; attendre les contrôles de santé avant d'analyser.
@@ -229,8 +256,8 @@ ne constitue pas une analyse tactique détaillée de la FEN. Le filtre documenta
 ne couvre que les correspondances présentes dans `opening_service.py`. Une FEN
 ne contient pas l'historique nécessaire pour détecter toutes les répétitions.
 
-À finaliser pour la livraison : initialisation du corpus portable,
-test de persistance après recréation, validation de la branche Stockfish et étude
+À finaliser pour la livraison : essai complet de première installation sur une
+autre machine, test de persistance après recréation, validation de la branche Stockfish et étude
 vidéo/MCP. Les routes séparées moves/evaluate évoquées dans le sujet ne sont pas
 exposées à l'identique : l'analyse est actuellement regroupée dans le graphe.
 
@@ -244,6 +271,7 @@ backend/app/
 ├── services/            # Fonctions réutilisables par l'API et les commandes
 └── commands/            # Collecte, préparation, indexation et évaluation
 frontend/                # Angular : échiquier, panneau et services HTTP
+resources/corpus/        # Lot versionné prêt à importer, empreinte et attribution
 scripts/                 # Explorations et tests manuels internes, ignorés par Git
 data/                    # Corpus, caches et vecteurs générés, ignorés par Git
 ```

@@ -119,6 +119,25 @@ services:
     depends_on:
       - api
 
+  corpus-init:
+    image: ${COMPOSE_PROJECT_NAME:-projet_13}-api
+    pull_policy: never
+    profiles:
+      - setup
+    environment:
+      MILVUS_URI: "http://standalone:19530"
+    volumes:
+      - type: bind
+        source: ./resources/corpus
+        target: /corpus
+        read_only: true
+        bind:
+          create_host_path: false
+    depends_on:
+      standalone:
+        condition: service_healthy
+    command: ["python", "-m", "backend.app.commands.index_milvus", "--bundle", "/corpus/chess-openings-fr-v1.zip"]
+
   embedding-init:
     image: ${COMPOSE_PROJECT_NAME:-projet_13}-api
     pull_policy: never
