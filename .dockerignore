@@ -2,3 +2,5 @@
 .git/
 .env
 volumes/
+frontend/
+output/

@@ -1,0 +1,302 @@
+<main class="coach-layout">
+  <section class="board-panel">
+    <h1>{{ title() }}</h1>
+    <p>Apprendre les ouvertures, une position à la fois.</p>
+
+    <p>Coups joués depuis le chargement : {{ moveCount() }}</p>
+    <p role="status">{{ gameStatus() }}</p>
+
+
+    <button type="button" (click)="resetGame()">
+      Recommencer
+    </button>
+
+    <button
+      type="button"
+      (click)="undoMove()"
+      [disabled]="moveCount() === 0"
+    >
+      Annuler le dernier coup
+    </button>
+
+
+    <button type="button" (click)="flipBoard()">
+      Retourner l’échiquier
+    </button>
+
+    <div class="fen-loader">
+      <label for="fen-input">Charger une position FEN</label>
+
+      <input
+        id="fen-input"
+        #fenInput
+        [value]="fen()"
+        type="text"
+        placeholder="Colle une FEN ici"
+      />
+
+      <button type="button" (click)="loadFen(fenInput.value)">
+        Charger la position
+      </button>
+      @if (fenError()) {
+        <p role="alert">{{ fenError() }}</p>
+      }
+    </div>
+
+    <h2>Position actuelle</h2>
+    <p>{{ fen() }}</p>
+
+    @if (pendingPromotion()) {
+      <section class="promotion-choice" aria-labelledby="promotion-title">
+        <h3 id="promotion-title">Choisis la pièce de promotion</h3>
+        <p role="status">Le coup sera joué après ton choix.</p>
+        <div class="promotion-actions">
+          <button type="button" (click)="choosePromotion('q')">Dame</button>
+          <button type="button" (click)="choosePromotion('r')">Tour</button>
+          <button type="button" (click)="choosePromotion('b')">Fou</button>
+          <button type="button" (click)="choosePromotion('n')">Cavalier</button>
+          <button type="button" (click)="cancelPromotion()">Annuler le choix</button>
+        </div>
+      </section>
+    }
+
+    <div #boardElement class="chessboard"></div>
+  </section>
+
+  <aside class="analysis-panel">
+    <h2>Le coach</h2>
+    <p>Analyse de la position par le coach.</p>
+
+    <section aria-labelledby="history-title">
+      <h3 id="history-title">Dernières analyses</h3>
+      <button type="button" (click)="refreshHistory()" [disabled]="historyLoading()">
+        Actualiser l’historique
+      </button>
+      <p role="status">
+        @if (historyLoading()) {
+          Chargement de l’historique…
+        } @else if (!historyLoaded() && !historyError()) {
+          Clique sur « Actualiser l’historique » pour retrouver tes analyses.
+        } @else if (historyLoaded() && !historyError() && analysisHistory().length === 0) {
+          Aucune analyse enregistrée.
+        }
+      </p>
+      @if (historyError()) {
+        <p role="alert">{{ historyError() }}</p>
+      }
+      <ul class="analysis-history">
+        @for (item of analysisHistory(); track item._id) {
+          <li>
+            <time [attr.datetime]="item.created_at">
+              {{ item.created_at | date:'dd/MM/yyyy HH:mm:ss' }}
+            </time>
+            <code>{{ item.fen }}</code>
+            <button
+              type="button"
+              (click)="loadSavedAnalysis(item._id)"
+              [disabled]="analysisState() === 'loading' || pendingPromotion() !== null"
+              [attr.aria-label]="'Charger l’analyse ' + item._id"
+            >
+              {{ analysisId() === item._id ? 'Recharger cette analyse' : 'Charger cette analyse' }}
+            </button>
+          </li>
+        }
+      </ul>
+    </section>
+
+      <section class="fen-loader">
+      <label for="analysis-id">Identifiant d’analyse enregistrée</label>
+
+      <input
+        #analysisIdInput
+        id="analysis-id"
+        type="text"
+        placeholder="Colle ici l’identifiant"
+      />
+
+      <button
+        type="button"
+        (click)="loadSavedAnalysis(analysisIdInput.value)"
+        [disabled]="analysisState() === 'loading' || pendingPromotion() !== null"
+      >
+        Charger l’analyse
+      </button>
+
+      @if (savedAnalysisError()) {
+        <p role="alert">{{ savedAnalysisError() }}</p>
+      }
+    </section>
+
+    @if (analysisId(); as id) {
+      <p>Analyse enregistrée : <code>{{ id }}</code></p>
+    }
+
+    <section class="demo-picker" aria-labelledby="demo-title">
+      <h3 id="demo-title">Charger une position d’exemple</h3>
+      <p>Chaque bouton remplace la position sur l’échiquier. Lance ensuite l’analyse.</p>
+      <div class="demo-actions">
+        @for (scenario of demoScenarios; track scenario.id) {
+          <button type="button" (click)="loadFen(scenario.response.fen)">
+            {{ scenario.label }}
+          </button>
+        }
+      </div>
+    </section>
+
+    <button
+      type="button"
+      (click)="analysePosition()"
+      [disabled]="analysisState() === 'loading' || pendingPromotion() !== null"
+    >
+      {{ analysisState() === 'loading' ? 'Analyse en cours…' : 'Analyser la position' }}
+    </button>
+
+    <p role="status">
+      @if (analysisState() === 'idle') {
+        Joue un coup ou charge une position, puis lance son analyse.
+      } @else if (analysisState() === 'loading') {
+        Analyse en cours…
+      } @else if (analysisState() === 'ready') {
+        Analyse disponible.
+      }
+    </p>
+
+    @if (analysisState() === 'error') {
+      <div role="alert">
+        <p>{{ analysisError() }}</p>
+        <button type="button" (click)="analysePosition()"
+          [disabled]="pendingPromotion() !== null">
+          Réessayer
+        </button>
+      </div>
+    }
+
+    @if (analysisState() === 'ready') {
+      @if (analysis(); as result) {
+        @if (result.game_over) {
+          <section>
+            <h3>Partie terminée</h3>
+            <p>{{ gameStatus() }}</p>
+            <p>Aucun coup à proposer pour cette position.</p>
+          </section>
+        } @else {
+          <section>
+            <h3>Position analysée</h3>
+            @if (result.opening; as opening) {
+              <p>{{ opening['name'] }} · {{ opening['eco'] }}</p>
+            } @else {
+              <p>Aucune ouverture identifiée dans cette réponse.</p>
+            }
+            <p>
+              Origine de l’exemple :
+              {{ result.source === 'lichess' ? 'Lichess' : result.source === 'stockfish' ? 'Stockfish' : 'non précisée' }}.
+            </p>
+          </section>
+
+          <section>
+            <h3>Coups proposés</h3>
+            <ul class="suggested-moves">
+              @for (move of result.moves; track $index) {
+                <li>
+                  <button type="button" (click)="playSuggestedMove(move.uci)"
+                    [disabled]="!move.uci || result.fen !== fen() || pendingPromotion() !== null">
+                    {{ move.san ?? move.uci ?? 'Coup indisponible' }}
+                  </button>
+                  @if (isLichessMove(move)) {
+                    @if (move.opening) { <p>{{ move.opening }}</p> }
+                    <p>{{ move.games_count }} parties · {{ formatFrequency(move.frequency) }} des parties de cette position</p>
+                  } @else if (isStockfishMove(move)) {
+                    @if (move.score_cp !== null) {
+                      <p>Évaluation : {{ formatScore(move.score_cp) }} pion(s), du point de vue des Blancs.</p>
+                    }
+                    @if (move.mate !== null) {
+                      <p>Mat annoncé : {{ move.mate }} (positif pour les Blancs, négatif pour les Noirs).</p>
+                    }
+                    @if (move.score_cp === null && move.mate === null) {
+                      <p>Évaluation indisponible.</p>
+                    }
+                  }
+                </li>
+              } @empty {
+                <li>Aucun coup proposé.</li>
+              }
+            </ul>
+          </section>
+
+          <section>
+            <h3>Comprendre la position</h3>
+            @if (result.explanation; as explanation) {
+              @for (item of explanation.claims; track $index) {
+                <p>{{ item.claim }} [{{ item.source_id }}]</p>
+                <details>
+                  <summary>Voir l’extrait justificatif</summary>
+                  <blockquote>{{ item.evidence }}</blockquote>
+                </details>
+              } @empty {
+                <p>Aucune explication disponible.</p>
+              }
+              @if (explanation.limitation === 'insufficient_context') {
+                <p>Les sources disponibles ne suffisent pas à détailler les plans.</p>
+              } @else if (explanation.limitation === 'no_strategic_plans') {
+                <p>Les sources disponibles ne décrivent pas de plans stratégiques.</p>
+              }
+            } @else {
+              <p>Aucune explication documentaire disponible pour cette position.</p>
+            }
+
+            <h4>Sources</h4>
+            <ol>
+              @for (document of result.documents; track document.id) {
+                <li>
+                  <a [href]="document.source_url" target="_blank" rel="noopener noreferrer">
+                    {{ document.title }}
+                  </a>
+                </li>
+              } @empty {
+                <li>Aucune source documentaire disponible.</li>
+              }
+            </ol>
+          </section>
+
+          <section>
+            <h3>Parties de référence</h3>
+            <ul class="reference-games">
+              @for (game of result.games; track game.id) {
+                <li>
+                  <strong>{{ game.white.name }} ({{ game.white.rating }})</strong>
+                  — <strong>{{ game.black.name }} ({{ game.black.rating }})</strong>
+                  <p>
+                    @if (game.winner === 'white') {
+                      Victoire des Blancs
+                    } @else if (game.winner === 'black') {
+                      Victoire des Noirs
+                    } @else {
+                      Partie nulle
+                    }
+                    · <time [attr.datetime]="game.month">{{ formatMonth(game.month) }}</time>
+                  </p>
+                </li>
+              } @empty {
+                <li>Aucune partie de référence disponible.</li>
+              }
+            </ul>
+          </section>
+
+          <section>
+            <h3>Vidéos</h3>
+            <ul>
+              @for (video of result.videos; track video.id) {
+                <li>
+                  <a [href]="video.url" target="_blank" rel="noopener noreferrer">{{ video.title }}</a>
+                  <p>{{ video.channel }}</p>
+                </li>
+              } @empty {
+                <li>Aucune vidéo disponible.</li>
+              }
+            </ul>
+          </section>
+        }
+      }
+    }
+  </aside>
+</main>

@@ -8,10 +8,15 @@ services:
     environment:
       LICHESS_API_TOKEN: ${LICHESS_API_TOKEN}
       MILVUS_URI: "http://standalone:19530"
+      MONGODB_URI: "mongodb://mongodb:27017"
       EMBEDDING_DEVICE: "cpu"
       HF_HUB_CACHE: "/models/hub"
       YOUTUBE_API_KEY: ${YOUTUBE_API_KEY}
-    
+      GROQ_API_KEY: ${GROQ_API_KEY}
+    depends_on:
+      mongodb:
+        condition: service_healthy
+
     volumes:
       - type: bind
         source: /home/raya-kevin/.cache/huggingface/hub
@@ -102,3 +107,19 @@ services:
         condition: service_started
       minio:
         condition: service_started
+
+  mongodb:
+    image: mongo:7.0
+    ports:
+      - "127.0.0.1:27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "quit(db.adminCommand('ping').ok ? 0 : 1)"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+volumes:
+  mongodb_data:

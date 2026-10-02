@@ -84,3 +84,10 @@ class VideoSearchResponse (BaseModel) :
     opening : str
     videos : list [VideoReference]
 
+class AnalysisRequest(BaseModel):
+    fen: str
+
+
+class AnalysisCreatedResponse(BaseModel):
+    id: str
+    result: OpeningMovesResponse

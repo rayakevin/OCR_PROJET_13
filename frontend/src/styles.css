@@ -1,0 +1,4 @@
+/* You can add global styles to this file, and also import other style files */
+@import '@lichess-org/chessground/assets/chessground.base.css';
+@import '@lichess-org/chessground/assets/chessground.brown.css';
+@import '@lichess-org/chessground/assets/chessground.cburnett.css';

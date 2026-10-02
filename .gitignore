@@ -18,5 +18,5 @@ scripts/
 # Personal documentation (tutorials, notes, etc.)
 output/personal/
 
-data/
+/data/
 volumes/
