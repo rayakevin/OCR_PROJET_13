@@ -80,6 +80,9 @@ export interface SavedAnalysis {
 }
 
 export interface AnalysisSummary {
+  opening_name?: string | null;
+  source?: string | null;
+  game_over?: boolean | null;
   _id: string;
   fen: string;
   created_at: string;

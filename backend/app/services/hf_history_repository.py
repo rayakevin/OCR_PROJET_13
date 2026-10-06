@@ -6,6 +6,8 @@ destiné au faible trafic du Space, pas à remplacer MongoDB à grande échelle.
 """
 
 from datetime import datetime, timezone
+
+from backend.app.services.analysis_repository import analysis_summary
 import json
 import os
 from pathlib import Path
@@ -88,8 +90,7 @@ def list_analyses(limit: int = 10) -> list[dict]:
                       if path.startswith("analyses/") and path.endswith(".json")
                       and ObjectId.is_valid(Path(path).stem)), reverse=True)
         documents = [get_analysis(value) for value in ids[:limit]]
-        return [{key: doc[key] for key in ("_id", "fen", "created_at")}
-                for doc in documents if doc is not None]
+        return [analysis_summary(doc) for doc in documents if doc is not None]
     except HistoryError:
         raise
     except Exception:

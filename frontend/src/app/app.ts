@@ -232,7 +232,26 @@ export class App {
       this.gameStatus.set(`Au tour des ${player}${check}`);
     }
   }
-  /** Affiche le mois d’une partie de référence sans décalage de fuseau. */
+  /** Décrit les métadonnées enregistrées sans déduire une ouverture de la FEN. */
+  protected historyTitle(item: AnalysisSummary): string {
+    if (item.game_over) return 'Partie terminée';
+    if (item.opening_name) return item.opening_name;
+    if (item.fen === new Chess().fen()) return 'Position initiale';
+    return 'Position analysée';
+  }
+
+  protected historyContext(item: AnalysisSummary): string {
+    const parts = item.fen.split(' ');
+    const turn = parts[1] === 'b' ? 'Noirs au trait' : 'Blancs au trait';
+    const move = Number(parts[5]);
+    const source = item.source === 'lichess' ? 'Lichess' : item.source === 'stockfish' ? 'Stockfish' : '';
+    return [turn, Number.isFinite(move) && move > 0 ? `Coup ${move}` : '', source].filter(Boolean).join(' · ');
+  }
+
+  protected formatGames(count: number): string {
+    return new Intl.NumberFormat('fr-FR', { notation: 'compact', maximumFractionDigits: 1 }).format(count);
+  }
+
   protected formatMonth(month: string): string {
     return new Intl.DateTimeFormat('fr-FR', {
       month: 'long',

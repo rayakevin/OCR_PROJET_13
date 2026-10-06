@@ -56,7 +56,7 @@ def get_analysis(analysis_id: str) -> dict | None:
 
 
 def list_analyses(limit: int = 10) -> list[dict]:
-    """Liste les résumés du plus récent au plus ancien, sans charger result.
+    """Liste les résumés et les métadonnées utiles, sans les contenus détaillés.
 
     L'appelant doit fournir une limite positive ; la route la borne à 1..50.
     _id départage les dates égales. Les dates restent des datetime UTC avec
@@ -74,7 +74,8 @@ def list_analyses(limit: int = 10) -> list[dict]:
         cursor = (
             collection.find(
                 {},
-                {"fen": 1, "created_at": 1},
+                {"fen": 1, "created_at": 1, "result.opening": 1,
+                 "result.source": 1, "result.game_over": 1},
             )
             .sort([("created_at", -1), ("_id", -1)])
             .limit(limit)
@@ -83,7 +84,20 @@ def list_analyses(limit: int = 10) -> list[dict]:
         analyses = []
 
         for document in cursor:
-            document["_id"] = str(document["_id"])
-            analyses.append(document)
+            analyses.append(analysis_summary(document))
 
         return analyses
+
+
+def analysis_summary(document: dict) -> dict:
+    """Expose un résumé lisible, compatible avec les anciennes analyses."""
+    result = document.get("result") or {}
+    opening = result.get("opening") or {}
+    return {
+        "_id": str(document["_id"]),
+        "fen": document["fen"],
+        "created_at": document["created_at"],
+        "opening_name": opening.get("name"),
+        "source": result.get("source"),
+        "game_over": result.get("game_over"),
+    }

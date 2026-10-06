@@ -24,6 +24,23 @@
       Retourner l’échiquier
     </button>
 
+    @if (pendingPromotion()) {
+      <section class="promotion-choice" aria-labelledby="promotion-title">
+        <h3 id="promotion-title">Choisis la pièce de promotion</h3>
+        <p role="status">Le coup sera joué après ton choix.</p>
+        <div class="promotion-actions">
+          <button type="button" (click)="choosePromotion('q')">Dame</button>
+          <button type="button" (click)="choosePromotion('r')">Tour</button>
+          <button type="button" (click)="choosePromotion('b')">Fou</button>
+          <button type="button" (click)="choosePromotion('n')">Cavalier</button>
+          <button type="button" (click)="cancelPromotion()">Annuler le choix</button>
+        </div>
+      </section>
+    }
+
+    <div #boardElement class="chessboard"></div>
+    <details class="position-tools">
+      <summary>Importer une position · FEN</summary>
     <div class="fen-loader">
       <label for="fen-input">Charger une position FEN</label>
 
@@ -43,24 +60,7 @@
       }
     </div>
 
-    <h2>Position actuelle</h2>
-    <p>{{ fen() }}</p>
-
-    @if (pendingPromotion()) {
-      <section class="promotion-choice" aria-labelledby="promotion-title">
-        <h3 id="promotion-title">Choisis la pièce de promotion</h3>
-        <p role="status">Le coup sera joué après ton choix.</p>
-        <div class="promotion-actions">
-          <button type="button" (click)="choosePromotion('q')">Dame</button>
-          <button type="button" (click)="choosePromotion('r')">Tour</button>
-          <button type="button" (click)="choosePromotion('b')">Fou</button>
-          <button type="button" (click)="choosePromotion('n')">Cavalier</button>
-          <button type="button" (click)="cancelPromotion()">Annuler le choix</button>
-        </div>
-      </section>
-    }
-
-    <div #boardElement class="chessboard"></div>
+    </details>
   </section>
 
   <aside class="analysis-panel">
@@ -68,15 +68,17 @@
     <p>Analyse de la position par le coach.</p>
 
     <section aria-labelledby="history-title">
+      <div class="section-heading">
       <h3 id="history-title">Dernières analyses</h3>
       <button type="button" (click)="refreshHistory()" [disabled]="historyLoading()">
-        Actualiser l’historique
+        Actualiser
       </button>
+      </div>
       <p role="status">
         @if (historyLoading()) {
           Chargement de l’historique…
         } @else if (!historyLoaded() && !historyError()) {
-          Clique sur « Actualiser l’historique » pour retrouver tes analyses.
+          Clique sur « Actualiser » pour retrouver tes analyses.
         } @else if (historyLoaded() && !historyError() && analysisHistory().length === 0) {
           Aucune analyse enregistrée.
         }
@@ -87,48 +89,29 @@
       <ul class="analysis-history">
         @for (item of analysisHistory(); track item._id) {
           <li>
-            <time [attr.datetime]="item.created_at">
-              {{ item.created_at | date:'dd/MM/yyyy HH:mm:ss' }}
-            </time>
-            <code>{{ item.fen }}</code>
-            <button
-              type="button"
+            <button type="button" class="history-row"
               (click)="loadSavedAnalysis(item._id)"
+              [class.selected]="analysisId() === item._id"
+              [attr.aria-current]="analysisId() === item._id ? 'true' : null"
               [disabled]="analysisState() === 'loading' || pendingPromotion() !== null"
-              [attr.aria-label]="'Charger l’analyse ' + item._id"
-            >
-              {{ analysisId() === item._id ? 'Recharger cette analyse' : 'Charger cette analyse' }}
+              [attr.aria-label]="'Charger : ' + historyTitle(item) + ', ' + historyContext(item) + ', ' + (item.created_at | date:'dd/MM/yyyy HH:mm')">
+              <span class="history-description">
+                <strong>{{ historyTitle(item) }}</strong>
+                <span>{{ historyContext(item) }}</span>
+              </span>
+              <time [attr.datetime]="item.created_at">{{ item.created_at | date:'dd/MM HH:mm' }}</time>
+              <span class="history-arrow" aria-hidden="true">↗</span>
             </button>
           </li>
         }
       </ul>
     </section>
 
-      <section class="fen-loader">
-      <label for="analysis-id">Identifiant d’analyse enregistrée</label>
-
-      <input
-        #analysisIdInput
-        id="analysis-id"
-        type="text"
-        placeholder="Colle ici l’identifiant"
-      />
-
-      <button
-        type="button"
-        (click)="loadSavedAnalysis(analysisIdInput.value)"
-        [disabled]="analysisState() === 'loading' || pendingPromotion() !== null"
-      >
-        Charger l’analyse
-      </button>
-
-      @if (savedAnalysisError()) {
-        <p role="alert">{{ savedAnalysisError() }}</p>
-      }
-    </section>
-
-    @if (analysisId(); as id) {
-      <p>Analyse enregistrée : <code>{{ id }}</code></p>
+    @if (savedAnalysisError()) {
+      <p role="alert">{{ savedAnalysisError() }}</p>
+    }
+    @if (analysisId()) {
+      <p class="saved-notice" role="status">✓ Analyse enregistrée</p>
     }
 
     <section class="demo-picker" aria-labelledby="demo-title">
@@ -203,18 +186,15 @@
                     {{ move.san ?? move.uci ?? 'Coup indisponible' }}
                   </button>
                   @if (isLichessMove(move)) {
-                    @if (move.opening) { <p>{{ move.opening }}</p> }
-                    <p>{{ move.games_count }} parties · {{ formatFrequency(move.frequency) }} des parties de cette position</p>
+                    <span class="move-opening" [title]="move.opening ?? 'Ouverture non précisée'">{{ move.opening ?? 'Ouverture non précisée' }}</span>
+                    <span class="move-stats" [title]="move.games_count + ' parties · fréquence dans cette position'">{{ formatGames(move.games_count) }} parties · {{ formatFrequency(move.frequency) }}</span>
                   } @else if (isStockfishMove(move)) {
-                    @if (move.score_cp !== null) {
-                      <p>Évaluation : {{ formatScore(move.score_cp) }} pion(s), du point de vue des Blancs.</p>
-                    }
-                    @if (move.mate !== null) {
-                      <p>Mat annoncé : {{ move.mate }} (positif pour les Blancs, négatif pour les Noirs).</p>
-                    }
-                    @if (move.score_cp === null && move.mate === null) {
-                      <p>Évaluation indisponible.</p>
-                    }
+                    <span class="move-opening">Évaluation Stockfish</span>
+                    <span class="move-stats" title="Évaluation du point de vue des Blancs">
+                      @if (move.mate !== null) { Mat {{ move.mate }} }
+                      @else if (move.score_cp !== null) { {{ formatScore(move.score_cp) }} pions }
+                      @else { Indisponible }
+                    </span>
                   }
                 </li>
               } @empty {

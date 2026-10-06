@@ -35,18 +35,6 @@
   gap: 8px;
 }
 
-.suggested-moves {
-  padding-left: 20px;
-}
-
-.suggested-moves li + li {
-  margin-top: 16px;
-}
-
-.suggested-moves p {
-  margin: 6px 0;
-}
-
 .coach-layout {
   display: grid;
   grid-template-columns: minmax(0, 480px) minmax(0, 1fr);
@@ -66,7 +54,7 @@
 
 @media (max-width: 800px) {
   .coach-layout {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
 }
 
@@ -182,27 +170,34 @@ summary {
   cursor: pointer;
 }
 
-.analysis-history {
-  display: grid;
-  gap: 12px;
-  padding: 0;
-  list-style: none;
-  max-height: 360px;
-  overflow-y: auto;
-}
-
-.analysis-history li {
-  display: grid;
-  gap: 8px;
-  padding: 12px;
-  background: white;
-  border: 1px solid #d5d8de;
-  border-radius: 8px;
-}
-
-.analysis-history code {
-  overflow-wrap: anywhere;
-  font-size: 0.8rem;
+/* Compact lists: one clickable history row, one line per suggested move. */
+.section-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.section-heading h3 { margin: 0; }
+.section-heading button { border: 0; background: transparent; color: #1d4ed8; padding: 6px 8px; font-size: .85rem; }
+.analysis-history { padding: 0; margin: 12px 0 0; list-style: none; max-height: 240px; overflow-y: auto; }
+.analysis-history li + li { border-top: 1px solid #e5e9ef; }
+.history-row { display: flex; align-items: center; gap: 12px; width: 100%; padding: 12px 8px; border: 0; border-radius: 4px; background: transparent; text-align: left; }
+.history-row.selected { background: #e8eefb; box-shadow: inset 3px 0 #1d4ed8; }
+.history-description { display: grid; gap: 3px; min-width: 0; flex: 1; }
+.history-description strong { font-size: .9rem; font-weight: 600; }
+.history-description > span, .history-row time { color: #596579; font-size: .75rem; }
+.history-row time { white-space: nowrap; }
+.history-arrow { color: #1d4ed8; }
+.saved-notice { color: #257047; font-size: .8rem; }
+.position-tools { margin-top: 18px; font-size: .85rem; color: #596579; }
+.position-tools .fen-loader { margin-top: 12px; }
+.suggested-moves { list-style: none; padding: 0; margin: 12px 0; }
+.suggested-moves li { display: flex; align-items: center; gap: 10px; padding: 9px 0; }
+.suggested-moves li + li { border-top: 1px solid #e5e9ef; }
+.suggested-moves button { flex: 0 0 56px; padding: 7px 4px; font-weight: 700; color: #1d4ed8; background: #e9effc; border: 0; }
+.move-opening { min-width: 0; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: .85rem; }
+.move-stats { white-space: nowrap; color: #596579; font-size: .75rem; font-variant-numeric: tabular-nums; }
+@media (max-width: 450px) {
+  .analysis-panel { padding: 16px; }
+  .suggested-moves li { gap: 6px; }
+  .suggested-moves button { flex-basis: 42px; }
+  .move-stats { font-size: .7rem; }
+  .history-row { gap: 8px; }
 }
 
 blockquote {
