@@ -1,0 +1,71 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="660" viewBox="0 0 1440 660" role="img" aria-labelledby="title desc"><title id="title">Planning avec décision précoce</title><desc id="desc">Scénario initial continu de 28 jours. Au jour 13 : poursuivre, tester B pour finir au jour 27, ou passer à A pour finir au jour 26. Si B échoue, A termine au jour 29.</desc><defs><marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10Z" fill="#596879"/></marker></defs><rect width="1440" height="660" fill="white"/><style>text{font-family:Arial,sans-serif;fill:#172b40;font-size:18px}.bold{font-weight:bold}.bar{fill:white;font-weight:bold;font-size:16px}.choice{font-size:17px;font-weight:bold}.line{stroke:#596879;stroke-width:2;fill:none;marker-end:url(#arr)}</style>
+<line x1="245" y1="58" x2="245" y2="615" stroke="#e5eaf0"/>
+<text x="337.5" y="35" class="bold" text-anchor="middle">Semaine 1</text>
+<line x1="430" y1="58" x2="430" y2="615" stroke="#e5eaf0"/>
+<text x="522.5" y="35" class="bold" text-anchor="middle">Semaine 2</text>
+<line x1="615" y1="58" x2="615" y2="615" stroke="#e5eaf0"/>
+<text x="707.5" y="35" class="bold" text-anchor="middle">Semaine 3</text>
+<line x1="800" y1="58" x2="800" y2="615" stroke="#e5eaf0"/>
+<text x="892.5" y="35" class="bold" text-anchor="middle">Semaine 4</text>
+<line x1="985" y1="58" x2="985" y2="615" stroke="#e5eaf0"/>
+<text x="1077.5" y="35" class="bold" text-anchor="middle">Semaine 5</text>
+<line x1="1170" y1="58" x2="1170" y2="615" stroke="#e5eaf0"/>
+<text x="1262.5" y="35" class="bold" text-anchor="middle">Semaine 6</text>
+<line x1="1355" y1="58" x2="1355" y2="615" stroke="#e5eaf0"/>
+<text x="18" y="163" class="bold" text-anchor="start">Scénario initial</text>
+<text x="18" y="333" class="bold" text-anchor="start">Alternative B</text>
+<text x="18" y="488" class="bold" text-anchor="start">A après essai B</text>
+<text x="18" y="593" class="bold" text-anchor="start">Alternative A directe</text>
+<path class="line" d="M726 186 V328 H726"/>
+<path class="line" d="M720 181 H701 V588 H726"/>
+<path class="line" d="M837 356 V455"/>
+<rect x="245" y="130" width="185" height="56" rx="5" fill="#087f8c"/>
+<text x="337.5" y="164" class="bar" text-anchor="middle">Cadrage</text>
+<rect x="430" y="130" width="222" height="56" rx="5" fill="#087f8c"/>
+<text x="541.0" y="153" class="bar" text-anchor="middle">Pipeline</text>
+<text x="541.0" y="173" class="bar" text-anchor="middle">audio / vidéo</text>
+<rect x="652" y="130" width="74" height="56" rx="5" fill="#087f8c"/>
+<text x="689.0" y="153" class="bar" text-anchor="middle">Essais</text>
+<text x="689.0" y="173" class="bar" text-anchor="middle">vision</text>
+<rect x="726" y="130" width="148" height="56" rx="5" fill="#087f8c"/>
+<text x="800.0" y="153" class="bar" text-anchor="middle">Poursuite</text>
+<text x="800.0" y="173" class="bar" text-anchor="middle">vision</text>
+<rect x="874" y="130" width="185" height="56" rx="5" fill="#087f8c"/>
+<text x="966.5" y="164" class="bar" text-anchor="middle">MCP</text>
+<rect x="1059" y="130" width="222" height="56" rx="5" fill="#087f8c"/>
+<text x="1170.0" y="164" class="bar" text-anchor="middle">Interface + bilan</text>
+<path d="M726 120L736 130L726 140L716 130Z" fill="#b7791f"/>
+<text x="726" y="81" class="bold" text-anchor="middle">Vision prometteuse ?</text>
+<text x="744" y="112" class="choice" text-anchor="start">Oui : poursuivre</text>
+<path d="M1281 148L1291 158L1281 168L1271 158Z" fill="#b7791f"/>
+<text x="708" y="279" class="choice" text-anchor="end">Non : tester un corpus restreint</text>
+<rect x="726" y="300" width="111" height="56" rx="5" fill="#b7791f"/>
+<text x="781.5" y="323" class="bar" text-anchor="middle">Profils +</text>
+<text x="781.5" y="343" class="bar" text-anchor="middle">essai B</text>
+<rect x="837" y="300" width="185" height="56" rx="5" fill="#087f8c"/>
+<text x="929.5" y="334" class="bar" text-anchor="middle">MCP</text>
+<rect x="1022" y="300" width="222" height="56" rx="5" fill="#087f8c"/>
+<text x="1133.0" y="334" class="bar" text-anchor="middle">Interface + bilan</text>
+<path d="M837 290L847 300L837 310L827 300Z" fill="#b7791f"/>
+<text x="842" y="247" class="bold" text-anchor="start">B satisfaisant ?</text>
+<text x="855" y="283" class="choice" text-anchor="start">Oui : poursuivre</text>
+<path d="M1244 318L1254 328L1244 338L1234 328Z" fill="#b7791f"/>
+<text x="855" y="415" class="choice" text-anchor="start">Non : transcription seule</text>
+<rect x="837" y="455" width="74" height="56" rx="5" fill="#b7791f"/>
+<text x="874.0" y="478" class="bar" text-anchor="middle">Adapter</text>
+<text x="874.0" y="498" class="bar" text-anchor="middle">A</text>
+<rect x="911" y="455" width="185" height="56" rx="5" fill="#087f8c"/>
+<text x="1003.5" y="489" class="bar" text-anchor="middle">MCP</text>
+<rect x="1096" y="455" width="222" height="56" rx="5" fill="#087f8c"/>
+<text x="1207.0" y="489" class="bar" text-anchor="middle">Interface + bilan</text>
+<path d="M1318 473L1328 483L1318 493L1308 483Z" fill="#b7791f"/>
+<text x="681" y="548" class="choice" text-anchor="end">Vision abandonnée →</text>
+<rect x="726" y="560" width="74" height="56" rx="5" fill="#b7791f"/>
+<text x="763.0" y="583" class="bar" text-anchor="middle">Adapter</text>
+<text x="763.0" y="603" class="bar" text-anchor="middle">A</text>
+<rect x="800" y="560" width="185" height="56" rx="5" fill="#087f8c"/>
+<text x="892.5" y="594" class="bar" text-anchor="middle">MCP</text>
+<rect x="985" y="560" width="222" height="56" rx="5" fill="#087f8c"/>
+<text x="1096.0" y="594" class="bar" text-anchor="middle">Interface + bilan</text>
+<path d="M1207 578L1217 588L1207 598L1197 588Z" fill="#b7791f"/>
+</svg>
