@@ -69,6 +69,30 @@ class WorkflowTests(unittest.TestCase):
     def analyse(self, fen=FRENCH):
         return self.client.post("/api/v1/analyses", json={"fen": fen})
 
+    def test_preview_does_not_save(self):
+        response = self.client.post("/api/v1/analyses/preview", json={"fen": FRENCH})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["opening"]["name"], "French Defense")
+        self.save.assert_not_called()
+
+    def test_explicit_save_preserves_result_without_recomputing(self):
+        preview = self.client.post("/api/v1/analyses/preview", json={"fen": FRENCH}).json()
+        for service in self.services.values():
+            service.reset_mock()
+        response = self.client.post("/api/v1/analyses/save", json=preview)
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(response.json()["result"], preview)
+        self.save.assert_called_once_with(fen=FRENCH, result=preview)
+        for service in self.services.values():
+            service.assert_not_called()
+
+    def test_explicit_save_rejects_invalid_position(self):
+        preview = self.client.post("/api/v1/analyses/preview", json={"fen": FINISHED}).json()
+        preview["fen"] = "invalid"
+        response = self.client.post("/api/v1/analyses/save", json=preview)
+        self.assertEqual(response.status_code, 400)
+        self.save.assert_not_called()
+
     def test_invalid_fen_stops_before_tools_and_storage(self):
         for fen in ("bonjour", "8/8/8/8/8/8/8/8 w - - 0 1"):
             with self.subTest(fen=fen):

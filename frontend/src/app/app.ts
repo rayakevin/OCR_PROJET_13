@@ -1,4 +1,5 @@
-import { Component, signal, viewChild, ElementRef, afterNextRender, inject } from '@angular/core';
+import { finalize } from 'rxjs';
+import { Component, signal, viewChild, ElementRef, afterNextRender, inject, DestroyRef } from '@angular/core';
 
 import { Chess } from 'chess.js';
 import { Chessground } from '@lichess-org/chessground';
@@ -25,6 +26,12 @@ import { HttpErrorResponse } from '@angular/common/http';
 })
 export class App {
   private board?: Api;
+  private analysisTimer?: ReturnType<typeof setTimeout>;
+  private analysisInFlight = false;
+  private analysisQueued = false;
+  private destroyed = false;
+  protected readonly saving = signal(false);
+  protected readonly saveError = signal('');
   private readonly chessApi = inject(ChessApi);
 
   protected readonly title = signal('Mon coach d’échecs');
@@ -56,6 +63,10 @@ export class App {
   private readonly boardElement = viewChild.required<ElementRef<HTMLElement>>('boardElement');
 
   constructor() {
+    inject(DestroyRef).onDestroy(() => {
+      this.destroyed = true;
+      clearTimeout(this.analysisTimer);
+    });
     afterNextRender(() => {
       this.board = Chessground(this.boardElement().nativeElement, {
         fen: this.game.fen(),
@@ -114,7 +125,7 @@ export class App {
     this.fenError.set('');
   }
   /** Charge une FEN ; en cas d’échec, conserve la position et renseigne fenError. */
-  protected loadFen(value: string): void {
+  protected loadFen(value: string, autoAnalyse = true): void {
     try {
       this.game.load(value.trim());
     } catch {
@@ -123,10 +134,13 @@ export class App {
     }
 
     this.fenError.set('');
-    this.syncPosition();
+    this.syncPosition(autoAnalyse);
   }
   /** Synchronise les signaux et Chessground, puis invalide les réponses HTTP en attente. */
-  private syncPosition(): void {
+  private syncPosition(autoAnalyse = true): void {
+    clearTimeout(this.analysisTimer);
+    this.analysisQueued = false;
+    this.saveError.set('');
     this.pendingPromotion.set(null);
     this.analysisRequestId++;
     this.analysisState.set('idle');
@@ -150,6 +164,10 @@ export class App {
       },
     });
     this.updateGameStatus();
+    if (autoAnalyse) {
+      this.analysisState.set('loading');
+      this.analysisTimer = setTimeout(() => this.analysePosition(), 300);
+    }
   }
   /** Construit les cases accessibles depuis chaque pièce ; aucune destination en fin de partie. */
   private getLegalDestinations(): Map<Key, Key[]> {
@@ -180,12 +198,12 @@ export class App {
       .moves({ verbose: true })
       .find((move) => move.from === from && move.to === to);
     if (!legalMove) {
-      this.syncPosition();
+      this.syncPosition(false);
       return;
     }
 
     if (legalMove.promotion) {
-      this.syncPosition();
+      this.syncPosition(false);
       this.pendingPromotion.set({ from, to });
       this.board?.set({
         movable: {
@@ -291,11 +309,15 @@ export class App {
       signDisplay: 'always',
     }).format(score / 100);
   }
-  /** Calcule et enregistre la position via POST ; ignore les réponses devenues obsolètes. */
+  /** Calcule sans sauvegarder ; une seule requête active, puis la dernière position demandée. */
   protected analysePosition(): void {
-    if (this.pendingPromotion() || this.analysisState() === 'loading') {
+    if (this.pendingPromotion() || this.destroyed) return;
+    clearTimeout(this.analysisTimer);
+    if (this.analysisInFlight) {
+      this.analysisQueued = true;
       return;
     }
+    this.analysisInFlight = true;
 
     const requestId = ++this.analysisRequestId;
     const requestedFen = this.game.fen();
@@ -308,14 +330,19 @@ export class App {
     const history = this.game.history({ verbose: true });
     const baseFen = history.length ? history[0].before : requestedFen;
     const playedMoves = history.map(move => move.from + move.to + (move.promotion ?? ''));
-    this.chessApi.createAnalysis(requestedFen, baseFen, playedMoves).subscribe({
+    this.chessApi.previewAnalysis(requestedFen, baseFen, playedMoves).pipe(finalize(() => {
+      this.analysisInFlight = false;
+      if (this.analysisQueued && !this.destroyed) {
+        this.analysisQueued = false;
+        this.analysePosition();
+      }
+    })).subscribe({
       next: (response) => {
         if (requestId !== this.analysisRequestId) {
           return;
         }
 
-        this.analysis.set(response.result);
-        this.analysisId.set(response.id);
+        this.analysis.set(response);
         this.analysisState.set('ready');
       },
 
@@ -330,6 +357,24 @@ export class App {
             : `L’analyse a échoué (erreur ${erreur.status}). Réessaie.`,
         );
         this.analysisState.set('error');
+      },
+    });
+  }
+  /** Sauvegarde explicite ; changer de position ne rattache pas le retour à la nouvelle FEN. */
+  protected savePosition(): void {
+    const result = this.analysis();
+    if (!result || result.fen !== this.fen() || this.analysisState() !== 'ready' || this.saving() || this.analysisId()) return;
+    this.saving.set(true);
+    this.saveError.set('');
+    this.chessApi.saveAnalysis(result).subscribe({
+      next: (saved) => {
+        this.saving.set(false);
+        if (this.analysis() === result) this.analysisId.set(saved.id);
+        this.refreshHistory();
+      },
+      error: () => {
+        this.saving.set(false);
+        if (this.analysis() === result) this.saveError.set('Sauvegarde impossible. Ton analyse reste disponible ; réessaie.');
       },
     });
   }
@@ -382,7 +427,7 @@ export class App {
         }
 
         // Restaurer d’abord la position sur l’échiquier.
-        this.loadFen(saved.fen);
+        this.loadFen(saved.fen, false);
 
         if (this.fenError()) {
           this.savedAnalysisError.set('La position enregistrée est invalide.');

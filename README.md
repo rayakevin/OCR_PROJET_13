@@ -15,7 +15,8 @@ FastAPI → LangGraph → validation FEN
                        └─ Lichess
                           ├─ aucun coup → Stockfish → résultat moteur
                           └─ coups trouvés → Milvus → YouTube → génération Groq
-    │ POST /analyses : validation du résultat, puis enregistrement
+    │ POST /analyses/preview : calcul automatique sans stockage
+    │ POST /analyses/save : sauvegarde explicite du résultat affiché
     ▼
 MongoDB : analyses, dates et historique
 ```
@@ -213,13 +214,15 @@ La première reconstruction avec cette organisation doit recréer les couches.
 | `GET /api/v1/healthcheck` | Disponibilité du processus API |
 | `GET /api/v1/position?fen=...` | Validité, trait, coups légaux, fin de partie |
 | `GET /api/v1/opening-moves?fen=...` | Analyse via le graphe, sans enregistrement |
+| `POST /api/v1/analyses/preview` | Corps `{fen, base_fen?, played_moves?}` ; analyse sans sauvegarde |
+| `POST /api/v1/analyses/save` | Corps `OpeningMovesResponse` ; valide et sauvegarde le résultat fourni par le navigateur sans recalcul, répond `201` |
 | `POST /api/v1/analyses` | Corps `{"fen": "..."}` ; calcule et enregistre, répond `201` avec `{id, result}` |
 | `GET /api/v1/analyses/{id}` | Relit `{_id, fen, created_at, result}` |
 | `GET /api/v1/analyses?limit=10` | Résumés `{_id, fen, created_at}`, récents d'abord ; limite de 1 à 50 |
 | `GET /api/v1/vector-search?question=...&limit=3` | Recherche documentaire libre |
 | `GET /api/v1/videos/{opening}?limit=3` | Recherche YouTube indépendante |
 
-Les analyses sont stockées dans `chess_coach.analyses`. Un POST crée toujours un
+Les analyses sont stockées dans `chess_coach.analyses`. Chaque sauvegarde crée un
 nouveau document, même pour la même FEN. GET ne recalcule pas l'analyse. Les dates
 sont enregistrées en UTC ; la liste conserve le fuseau, tandis que la lecture
 individuelle renvoie actuellement une date UTC sans suffixe de fuseau.
@@ -260,7 +263,7 @@ de délai dépassé et 502 en cas d'erreur réseau. Les détails internes sont m
 ### Vérifications manuelles
 
 - **Partie terminée** : `8/8/8/8/8/2k5/8/K7 w - - 0 1` ; aucun appel Lichess,
-  Stockfish, documentaire ou vidéo. Le POST doit enregistrer le résultat.
+  Stockfish, documentaire ou vidéo. Seul le clic « Sauvegarder la position » doit enregistrer le résultat.
 - **Défense française** : `rnbqkbnr/ppp2ppp/4p3/3p4/3PP3/8/PPP2PPP/RNBQKBNR w KQkq - 0 3` ;
   vérifier coups, ressources, explication, puis relecture par identifiant.
 - **Identifiant** : `bonjour` doit produire 400 ; un ObjectId valide absent produit 404.
@@ -270,6 +273,14 @@ de délai dépassé et 502 en cas d'erreur réseau. Les détails internes sont m
 
 Les essais manuels réussis ne remplacent pas une suite de tests automatisés. Les
 commandes d'évaluation ci-dessous portent sur la recherche et la génération.
+`cd frontend && npm run test:behavior` teste le composant avec des réponses HTTP
+contrôlées : analyse après un coup, réponse périmée, sauvegarde explicite, double
+clic, rechargement et promotion. Les calculs sont sérialisés ; un délai de 300 ms
+regroupe les changements rapides. Une requête déjà envoyée finit côté serveur,
+mais son résultat est ignoré si la position a changé. Les positions importées et
+les annulations de coups déclenchent aussi une analyse ; recharger une sauvegarde
+restaure son résultat sans recalcul.
+
 Le script npm `test` est hérité du squelette Angular : aucune suite frontend n'est
 encore configurée dans `angular.json`.
 

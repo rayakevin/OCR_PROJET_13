@@ -197,6 +197,31 @@ def get_analysis_endpoint(analysis_id: str):
 
     return analyse
 
+@app.post("/api/v1/analyses/preview", response_model=OpeningMovesResponse)
+def preview_analysis_endpoint(request: AnalysisRequest):
+    """Analyse sans écrire dans l’historique, y compris avec le contexte des coups."""
+    return run_analysis(request.fen, request.base_fen, request.played_moves)
+
+
+@app.post("/api/v1/analyses/save", response_model=AnalysisCreatedResponse, status_code=201)
+def save_analysis_endpoint(analyse: OpeningMovesResponse):
+    """Sauvegarde l’analyse affichée fournie par le client, sans la recalculer."""
+    try:
+        inspect_position(analyse.fen)
+    except ValueError as erreur:
+        raise HTTPException(status_code=400, detail=str(erreur)) from erreur
+    return persist_analysis(analyse)
+
+
+def persist_analysis(analyse: OpeningMovesResponse):
+    """Persiste un résultat validé et traduit une indisponibilité du stockage."""
+    try:
+        analysis_id = save_analysis(fen=analyse.fen, result=analyse.model_dump(mode="json"))
+    except ConnectionFailure as erreur:
+        raise HTTPException(status_code=503, detail="Impossible d’enregistrer l’analyse : la base est indisponible.") from erreur
+    return {"id": analysis_id, "result": analyse}
+
+
 @app.post(
     "/api/v1/analyses",
     response_model=AnalysisCreatedResponse,
@@ -219,21 +244,7 @@ def create_analysis_endpoint(request: AnalysisRequest):
             detail="Le résultat de l’analyse ne respecte pas le format attendu.",
         ) from erreur
 
-    try:
-        analysis_id = save_analysis(
-            fen=analyse.fen,
-            result=analyse.model_dump(mode="json"),
-        )
-    except ConnectionFailure as erreur:
-        raise HTTPException(
-            status_code=503,
-            detail="Impossible d’enregistrer l’analyse : la base est indisponible.",
-        ) from erreur
-
-    return {
-        "id": analysis_id,
-        "result": analyse,
-    }
+    return persist_analysis(analyse)
 
 @app.get("/api/v1/analyses")
 def list_analyses_endpoint(limit: int = Query(default=10, ge=1, le=50)):

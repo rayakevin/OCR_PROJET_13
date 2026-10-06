@@ -69,7 +69,7 @@
 
     <section aria-labelledby="history-title">
       <div class="section-heading">
-      <h3 id="history-title">Dernières analyses</h3>
+      <h3 id="history-title">Positions sauvegardées</h3>
       <button type="button" (click)="refreshHistory()" [disabled]="historyLoading()">
         Actualiser
       </button>
@@ -116,7 +116,7 @@
 
     <section class="demo-picker" aria-labelledby="demo-title">
       <h3 id="demo-title">Charger une position d’exemple</h3>
-      <p>Chaque bouton remplace la position sur l’échiquier. Lance ensuite l’analyse.</p>
+      <p>Chaque position chargée est analysée automatiquement.</p>
       <div class="demo-actions">
         @for (scenario of demoScenarios; track scenario.id) {
           <button type="button" (click)="loadFen(scenario.response.fen)">
@@ -126,17 +126,15 @@
       </div>
     </section>
 
-    <button
-      type="button"
-      (click)="analysePosition()"
-      [disabled]="analysisState() === 'loading' || pendingPromotion() !== null"
-    >
-      {{ analysisState() === 'loading' ? 'Analyse en cours…' : 'Analyser la position' }}
+    <button type="button" (click)="savePosition()"
+      [disabled]="analysisState() !== 'ready' || saving() || analysisId() !== null || pendingPromotion() !== null">
+      {{ saving() ? 'Sauvegarde en cours…' : analysisId() ? 'Position sauvegardée' : 'Sauvegarder la position' }}
     </button>
+    @if (saveError()) { <p role="alert">{{ saveError() }}</p> }
 
     <p role="status">
       @if (analysisState() === 'idle') {
-        Joue un coup ou charge une position, puis lance son analyse.
+        Joue un coup ou charge une position : le coach l’analyse automatiquement.
       } @else if (analysisState() === 'loading') {
         Analyse en cours…
       } @else if (analysisState() === 'ready') {
