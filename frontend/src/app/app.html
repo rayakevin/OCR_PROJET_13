@@ -3,7 +3,7 @@
     <h1>{{ title() }}</h1>
     <p>Apprendre les ouvertures, une position à la fois.</p>
 
-    <p>Coups joués depuis le chargement : {{ moveCount() }}</p>
+    <p>Coup n° {{ fullMoveNumber() }}</p>
     <p role="status">{{ gameStatus() }}</p>
 
 
@@ -168,10 +168,10 @@
             @if (result.opening; as opening) {
               <p>{{ opening['name'] }} · {{ opening['eco'] }}</p>
             } @else {
-              <p>Aucune ouverture identifiée dans cette réponse.</p>
+              <p>{{ openingMessage(result.fen) }}</p>
             }
             <p>
-              Origine de l’exemple :
+              Source de l’analyse :
               {{ result.source === 'lichess' ? 'Lichess' : result.source === 'stockfish' ? 'Stockfish' : 'non précisée' }}.
             </p>
           </section>

@@ -12,6 +12,8 @@ from backend.app.services.generation_service import generate_explanation
 
 class ChessState(TypedDict):
     fen:  str
+    base_fen: str | None
+    played_moves: list[str]
     game_over: bool
     termination: str | None
     moves: list[dict]
@@ -33,7 +35,12 @@ def validate_position(state : ChessState):
 
 def fetch_lichess(state: ChessState):
     """Ajoute les coups du catalogue, les parties de référence et le nom de l’ouverture."""
-    coups, parties, ouverture = get_opening_moves(state["fen"])
+    if state.get("played_moves"):
+        coups, parties, ouverture = get_opening_moves(
+            state["fen"], state.get("base_fen"), state["played_moves"]
+        )
+    else:
+        coups, parties, ouverture = get_opening_moves(state["fen"])
 
     return {
         "moves": coups,

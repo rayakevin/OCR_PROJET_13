@@ -77,7 +77,7 @@ async def get_position(fen: str):
     except ValueError as erreur:
         raise HTTPException(status_code=400, detail=str(erreur))
 
-def run_analysis(fen: str):
+def run_analysis(fen: str, base_fen: str | None = None, played_moves: list[str] | None = None):
 
     """Exécute le graphe commun aux routes GET et POST.
 
@@ -87,6 +87,8 @@ def run_analysis(fen: str):
     """
     etat_initial = {
     "fen": fen,
+    "base_fen": base_fen,
+    "played_moves": played_moves or [],
     "game_over": False,
     "termination": None,
     "moves": [],
@@ -206,7 +208,7 @@ def create_analysis_endpoint(request: AnalysisRequest):
     Chaque appel réussi crée un document distinct, même pour une FEN identique.
     Une erreur de stockage empêche la réponse de succès, même si le calcul a abouti.
     """
-    resultat = run_analysis(request.fen)
+    resultat = run_analysis(request.fen, request.base_fen, request.played_moves)
 
     # Vérifier le résultat avant de l’enregistrer.
     try:

@@ -19,8 +19,8 @@ export class ChessApi {
   }
 
   /** Calcule et persiste une nouvelle analyse ; renvoie son identifiant et son résultat. */
-  createAnalysis(fen: string) {
-    return this.http.post<AnalysisCreatedResponse>('/api/v1/analyses', { fen });
+  createAnalysis(fen: string, base_fen?: string, played_moves: string[] = []) {
+    return this.http.post<AnalysisCreatedResponse>('/api/v1/analyses', { fen, base_fen, played_moves });
   }
 
   /** Relit une analyse existante sans appeler les services de calcul. */

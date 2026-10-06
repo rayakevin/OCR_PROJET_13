@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import Literal
 
 class PositionResponse(BaseModel):
@@ -86,6 +86,8 @@ class VideoSearchResponse (BaseModel) :
 
 class AnalysisRequest(BaseModel):
     fen: str
+    base_fen: str | None = None
+    played_moves: list[str] = Field(default_factory=list, max_length=512)
 
 
 class AnalysisCreatedResponse(BaseModel):

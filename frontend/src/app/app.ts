@@ -30,6 +30,7 @@ export class App {
   protected readonly title = signal('Mon coach d’échecs');
 
   protected readonly moveCount = signal(0);
+  protected readonly fullMoveNumber = signal(1);
   protected readonly turn = signal('white');
 
   protected readonly demoScenarios = coachDemoScenarios;
@@ -137,6 +138,7 @@ export class App {
 
     this.fen.set(this.game.fen());
     this.moveCount.set(this.game.history().length);
+    this.fullMoveNumber.set(Number(this.game.fen().split(' ')[5]));
 
     this.board?.selectSquare(null);
     this.board?.set({
@@ -232,7 +234,14 @@ export class App {
       this.gameStatus.set(`Au tour des ${player}${check}`);
     }
   }
-  /** Décrit les métadonnées enregistrées sans déduire une ouverture de la FEN. */
+  /** Explique l’absence de nom sans confondre position initiale et ouverture inconnue. */
+  protected openingMessage(fen: string): string {
+    if (fen.split(' ').slice(0, 4).join(' ') === new Chess().fen().split(' ').slice(0, 4).join(' ')) {
+      return 'Position initiale : joue les premiers coups pour définir une ouverture.';
+    }
+    return 'Lichess ne donne pas de nom à cette position. Une FEN seule ne permet pas toujours de retrouver l’ouverture jouée.';
+  }
+
   protected historyTitle(item: AnalysisSummary): string {
     if (item.game_over) return 'Partie terminée';
     if (item.opening_name) return item.opening_name;
@@ -296,7 +305,10 @@ export class App {
     this.analysisError.set('');
     this.analysisState.set('loading');
 
-    this.chessApi.createAnalysis(requestedFen).subscribe({
+    const history = this.game.history({ verbose: true });
+    const baseFen = history.length ? history[0].before : requestedFen;
+    const playedMoves = history.map(move => move.from + move.to + (move.promotion ?? ''));
+    this.chessApi.createAnalysis(requestedFen, baseFen, playedMoves).subscribe({
       next: (response) => {
         if (requestId !== this.analysisRequestId) {
           return;
