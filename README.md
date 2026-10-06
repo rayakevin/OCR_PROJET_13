@@ -282,8 +282,9 @@ ne contient pas l'historique nécessaire pour détecter toutes les répétitions
 Installation sur bases vierges et persistance après recréation validées le
 2 octobre 2026 sur le même poste, avec les images existantes et le corpus versionné.
 Le parcours réel hors catalogue vers Stockfish a également été vérifié.
-À finaliser pour la livraison : essai sur une autre machine, exposition via
-Hugging Face Spaces et étude vidéo/MCP. Les substitutions Wikipédia français
+À finaliser pour la livraison : essai sur une autre machine et validation publique
+sur Render. L’étude vidéo/MCP est finalisée ; son PDF intégral
+et son Markdown sont versionnés. Les substitutions Wikipédia français
 pour Wikichess et Chessground + chess.js pour ngx-chessboard ont été validées
 avec le mentor, selon confirmation de l'étudiant.
 Les routes séparées moves/evaluate évoquées dans le sujet ne sont pas
@@ -416,3 +417,14 @@ mesures techniques et expose les choix retenus.
 
 Les explorations de chunking et d'embeddings restent dans `scripts/` pour comparer
 les résultats, sans réécrire le corpus ou les vecteurs.
+
+### Déploiement Render
+
+Le [guide de déploiement](deploy/README.md) décrit l'image `Dockerfile.cloud`
+(Angular + FastAPI + Stockfish), MongoDB Atlas pour l'historique et Zilliz pour
+le corpus vectoriel. Le fichier `render.yaml` configure un service Free à Francfort.
+Les secrets sont saisis dans Render ; ils ne sont pas versionnés.
+Le déploiement public reste à configurer et à vérifier.
+
+L'étude vidéo/MCP est disponible en [Markdown](reports/etude-faisabilite-video-mcp.md)
+et en [PDF intégral](output/pdf/etude-faisabilite-video-mcp.pdf).

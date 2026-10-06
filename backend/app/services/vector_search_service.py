@@ -1,11 +1,6 @@
-import os
-
-from pymilvus import MilvusClient
+from backend.app.services.milvus_connection import COLLECTION_NAME, create_milvus_client
 # Réexportés pour les commandes locales d'évaluation existantes.
 from backend.app.services.embedding_service import MODEL_ID, QUERY_PROMPT, embed_question
-COLLECTION_NAME = "chess_openings_fr_v2"
-
-MILVUS_URI = os.getenv("MILVUS_URI", "http://127.0.0.1:19530")
 
 def search_documents(question: str, limit: int = 3, opening_title: str | None = None,) -> list[dict]:
     """Encode la question puis recherche les passages proches par similarité cosinus.
@@ -23,7 +18,7 @@ def search_documents(question: str, limit: int = 3, opening_title: str | None = 
 
     vecteur_question = embed_question(question)
 
-    client = MilvusClient(uri=MILVUS_URI, timeout=15)
+    client = create_milvus_client()
     filtre = ""
     parametres_filtre = {}
 

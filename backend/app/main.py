@@ -22,20 +22,25 @@ from pydantic import ValidationError
 
 
 from pymongo.errors import ConnectionFailure
-from backend.app.services.analysis_repository import get_analysis
 
 from backend.app.schemas import AnalysisRequest, AnalysisCreatedResponse
-from backend.app.services.analysis_repository import get_analysis, save_analysis
 
 from fastapi import FastAPI, HTTPException, Query
 
-from backend.app.services.analysis_repository import (
+from backend.app.services.history_service import (
     get_analysis,
     save_analysis,
     list_analyses,
 )
+from backend.app.services.hf_history_repository import HistoryError
 
 app = FastAPI()
+
+
+@app.exception_handler(HistoryError)
+async def history_error_handler(request, erreur: HistoryError):
+    """Expose une erreur maîtrisée du stockage HF de démonstration."""
+    return JSONResponse(status_code=503, content={"detail": str(erreur)})
 
 
 @app.exception_handler(EmbeddingError)

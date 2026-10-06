@@ -11,6 +11,11 @@ wheels/
 
 # Environment variables
 .env
+.env.*
+!.env.cloud.example
+
+# Fichiers de rendu et contrôles temporaires.
+/tmp/
 
 # Explorations et tests manuels internes (outils reproductibles : backend/app/commands/)
 scripts/
@@ -20,3 +25,6 @@ output/personal/
 
 /data/
 volumes/
+
+# Paquets de publication générés (recréés par prepare_space).
+/output/hf-space*/

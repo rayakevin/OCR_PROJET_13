@@ -1,0 +1,27 @@
+services:
+  - type: web
+    name: chess-coach
+    runtime: docker
+    plan: free
+    region: frankfurt
+    dockerfilePath: ./Dockerfile.cloud
+    dockerContext: .
+    healthCheckPath: /api/v1/healthcheck
+    autoDeployTrigger: off
+    envVars:
+      - key: HISTORY_BACKEND
+        value: mongodb
+      - key: MONGODB_URI
+        sync: false
+      - key: MILVUS_URI
+        sync: false
+      - key: MILVUS_TOKEN
+        sync: false
+      - key: HF_TOKEN
+        sync: false
+      - key: GROQ_API_KEY
+        sync: false
+      - key: YOUTUBE_API_KEY
+        sync: false
+      - key: LICHESS_API_TOKEN
+        sync: false

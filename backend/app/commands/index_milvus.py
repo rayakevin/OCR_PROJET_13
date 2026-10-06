@@ -9,17 +9,15 @@ import argparse
 from contextlib import nullcontext
 import hashlib
 import json
-import os
 from pathlib import Path
 
 import numpy as np
 from pymilvus import DataType, MilvusClient
 from backend.app.commands._common import WIKIPEDIA_DIR
 from backend.app.commands._corpus_bundle import ouvrir_lot
+from backend.app.services.milvus_connection import COLLECTION_NAME, create_milvus_client
 
 
-MILVUS_URI = os.getenv("MILVUS_URI", "http://127.0.0.1:19530")
-COLLECTION_NAME = "chess_openings_fr_v2"
 MODEL_ID = "Qwen/Qwen3-Embedding-0.6B"
 DIMENSION = 1024
 TEXT_FIELDS = {
@@ -129,7 +127,7 @@ def main():
     print(f"Fichiers vérifiés : {len(entrees)} entrées, dimension {DIMENSION}.")
     if args.check_only:
         return
-    client = MilvusClient(uri=MILVUS_URI)
+    client = create_milvus_client()
     try:
         preparer_collection(client)
         resultat = client.upsert(collection_name=COLLECTION_NAME, data=entrees)
