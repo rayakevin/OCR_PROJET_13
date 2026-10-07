@@ -38,8 +38,8 @@ export class ChessApi {
     return this.http.get<SavedAnalysis>(`/api/v1/analyses/${encodeURIComponent(analysisId)}`);
   }
 
-  /** Liste les derniers résumés ; le backend accepte une limite de 1 à 50. */
-  listAnalyses(limit: number = 10) {
-    return this.http.get<AnalysisSummary[]>('/api/v1/analyses', { params: { limit } });
+  /** Liste toutes les sauvegardes, de la plus récente à la plus ancienne. */
+  listAnalyses() {
+    return this.http.get<AnalysisSummary[]>('/api/v1/analyses');
   }
 }

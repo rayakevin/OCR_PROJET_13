@@ -55,10 +55,10 @@ def get_analysis(analysis_id: str) -> dict | None:
         return document
 
 
-def list_analyses(limit: int = 10) -> list[dict]:
+def list_analyses(limit: int | None = None) -> list[dict]:
     """Liste les résumés et les métadonnées utiles, sans les contenus détaillés.
 
-    L'appelant doit fournir une limite positive ; la route la borne à 1..50.
+    Sans limite, retourne tous les résumés ; une limite explicite reste optionnelle.
     _id départage les dates égales. Les dates restent des datetime UTC avec
     fuseau et les identifiants sont convertis en texte.
     """
@@ -78,7 +78,7 @@ def list_analyses(limit: int = 10) -> list[dict]:
                  "result.source": 1, "result.game_over": 1},
             )
             .sort([("created_at", -1), ("_id", -1)])
-            .limit(limit)
+            .limit(limit or 0)
         )
 
         analyses = []

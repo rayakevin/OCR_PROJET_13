@@ -23,5 +23,5 @@ def get_analysis(analysis_id: str) -> dict | None:
     return repository().get_analysis(analysis_id)
 
 
-def list_analyses(limit: int = 10) -> list[dict]:
+def list_analyses(limit: int | None = None) -> list[dict]:
     return repository().list_analyses(limit)

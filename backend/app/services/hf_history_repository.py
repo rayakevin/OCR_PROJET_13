@@ -75,13 +75,13 @@ def get_analysis(analysis_id: str) -> dict | None:
         raise HistoryError("Impossible de relire cette analyse.") from None
 
 
-def list_analyses(limit: int = 10) -> list[dict]:
+def list_analyses(limit: int | None = None) -> list[dict]:
     """Liste les derniers identifiants ; aucun état local requis après redémarrage.
 
     Les ObjectId suivent l'ordre de création du processus unique du Space.
     Des producteurs multiples peuvent différer dans l'ordre à la seconde près.
     """
-    if not 1 <= limit <= 50:
+    if limit is not None and not 1 <= limit <= 50:
         raise ValueError("La limite doit être comprise entre 1 et 50.")
     api, repo_id = connection()
     try:

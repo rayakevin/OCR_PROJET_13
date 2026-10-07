@@ -4,6 +4,13 @@ POC pédagogique : déplacer les pièces, analyser une position FEN, consulter l
 coups du catalogue Lichess, les parties de référence, les documents et vidéos,
 puis enregistrer et retrouver une analyse dans MongoDB.
 
+[Essayer le coach](https://chess-coach-g68p.onrender.com/) · [Comprendre le projet](https://chess-coach-g68p.onrender.com/projet.html)
+
+L’analyse se déclenche après chaque coup légal. « Sauvegarder la position » conserve
+la FEN et le résultat affiché ; l’historique présente toutes les sauvegardes,
+sans reconstituer une partie complète. Cette démonstration n’a pas de comptes :
+l’historique est commun aux visiteurs.
+
 ## Architecture et responsabilités
 
 ```text
@@ -26,7 +33,10 @@ MinIO stocke les objets utilisés par Milvus et etcd ses métadonnées. Le modè
 Qwen3-Embedding-0.6B encode les questions chez DeepInfra via Hugging Face ;
 Milvus reçoit le vecteur normalisé à 1024 dimensions. La génération est distante, chez Groq. La branche Stockfish se termine sans appel documentaire ou génération.
 
-**État actuel :** frontend Nginx, backend et bases dans Docker Compose. Le frontend
+**En ligne :** un conteneur Render sert Angular et FastAPI ; MongoDB Atlas
+conserve les sauvegardes et Zilliz héberge la collection Milvus.
+
+**En local :** frontend Nginx, backend et bases dans Docker Compose. Le frontend
 peut aussi être lancé avec `npm start` en développement. L’API ne nécessite plus
 de modèle local. Un lot versionné de 339 passages permet d’initialiser Milvus
 sans collecte ni recalcul, avec la commande explicite `corpus-init` ci-dessous.
@@ -73,6 +83,11 @@ avec son noyau Linux. La base locale n'a pas d'authentification et son port est
 publié sur la boucle locale. Cette configuration est celle du POC local.
 
 ## Première installation depuis un clone
+
+```bash
+git clone https://github.com/rayakevin/OCR_PROJET_13.git
+cd OCR_PROJET_13
+```
 
 Configurer les clés dans `.env` comme indiqué plus haut, puis lancer depuis la
 racine du dépôt (le port 4200 doit être libre) :
@@ -218,7 +233,7 @@ La première reconstruction avec cette organisation doit recréer les couches.
 | `POST /api/v1/analyses/save` | Corps `OpeningMovesResponse` ; valide et sauvegarde le résultat fourni par le navigateur sans recalcul, répond `201` |
 | `POST /api/v1/analyses` | Corps `{"fen": "..."}` ; calcule et enregistre, répond `201` avec `{id, result}` |
 | `GET /api/v1/analyses/{id}` | Relit `{_id, fen, created_at, result}` |
-| `GET /api/v1/analyses?limit=10` | Résumés `{_id, fen, created_at}`, récents d'abord ; limite de 1 à 50 |
+| `GET /api/v1/analyses` | Tous les résumés, récents d'abord ; `limit` optionnel de 1 à 50 |
 | `GET /api/v1/vector-search?question=...&limit=3` | Recherche documentaire libre |
 | `GET /api/v1/videos/{opening}?limit=3` | Recherche YouTube indépendante |
 

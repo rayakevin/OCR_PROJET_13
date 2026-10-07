@@ -248,8 +248,8 @@ def create_analysis_endpoint(request: AnalysisRequest):
     return persist_analysis(analyse)
 
 @app.get("/api/v1/analyses")
-def list_analyses_endpoint(limit: int = Query(default=10, ge=1, le=50)):
-    """Renvoie les résumés les plus récents ; FastAPI borne limit entre 1 et 50."""
+def list_analyses_endpoint(limit: int | None = Query(default=None, ge=1, le=50)):
+    """Renvoie tous les résumés, ou une sélection récente si limit est fourni."""
     try:
         return list_analyses(limit=limit)
     except ConnectionFailure as erreur:

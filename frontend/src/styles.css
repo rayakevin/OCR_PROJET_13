@@ -2,3 +2,24 @@
 @import '@lichess-org/chessground/assets/chessground.base.css';
 @import '@lichess-org/chessground/assets/chessground.brown.css';
 @import '@lichess-org/chessground/assets/chessground.cburnett.css';
+:root {
+  color-scheme: dark;
+  --page: #10151d;
+  --surface: #19222e;
+  --raised: #222e3e;
+  --text: #e6edf5;
+  --muted: #aab8ca;
+  --line: #344356;
+  --accent: #9bbcff;
+  --selected: #283d60;
+}
+body { margin: 0; background: var(--page); color: var(--text); }
+* { scrollbar-color: #52647c var(--surface); }
+
+.project-links { display: grid; gap: 8px; margin-top: 24px; }
+.project-links a { display: flex; justify-content: space-between; gap: 12px; padding: 12px 14px; border: 1px solid var(--line); border-radius: 8px; text-decoration: none; font-size: .9rem; }
+.project-links a:hover { background: var(--raised); }
+
+/* Keep file labels within the board at every screen size. */
+.cg-wrap coords.files { left: 0; text-align: right; }
+.cg-wrap coords.files coord { flex: 0 0 12.5%; box-sizing: border-box; padding-right: 4px; }
