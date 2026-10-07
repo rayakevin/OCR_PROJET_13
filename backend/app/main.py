@@ -98,6 +98,7 @@ def run_analysis(fen: str, base_fen: str | None = None, played_moves: list[str] 
     "documents": [],
     "videos": [],
     "explanation": None,
+    "warnings": [],
     }
 
     try:

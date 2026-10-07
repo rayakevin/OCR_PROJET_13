@@ -7,7 +7,7 @@ from backend.app.services.stockfish_service import analyse_position
 from backend.app.services.opening_service import get_opening_title
 from backend.app.services.vector_search_service import search_documents
 from backend.app.services.youtube_service import search_videos
-from backend.app.services.generation_service import generate_explanation
+from backend.app.services.generation_service import generate_explanation, GenerationUnavailable
 
 
 class ChessState(TypedDict):
@@ -23,6 +23,7 @@ class ChessState(TypedDict):
     documents: list[dict]
     videos: list[dict]
     explanation: dict | None
+    warnings: list[str]
 
 def validate_position(state : ChessState):
     """Valide la FEN et ne met à jour que les champs liés à la fin de partie."""
@@ -104,12 +105,15 @@ def explain_opening(state: ChessState):
     if not titre or not state["documents"]:
         return {"explanation": None}
 
-    explication = generate_explanation(
-        question=f"Quels sont les principes et les plans de {titre} ?",
-        documents=state["documents"],
-    )
+    try:
+        explication = generate_explanation(
+            question=f"Quels sont les principes et les plans de {titre} ?",
+            documents=state["documents"],
+        )
+    except GenerationUnavailable as error:
+        return {"explanation": None, "warnings": [str(error)]}
+    return {"explanation": explication.model_dump(), "warnings": []}
 
-    return {"explanation": explication.model_dump()}
 
 
 builder = StateGraph(ChessState)

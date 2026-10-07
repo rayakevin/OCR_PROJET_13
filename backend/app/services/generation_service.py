@@ -1,7 +1,13 @@
 import os
+import json
+import logging
+import time
+from collections import OrderedDict
+from threading import RLock
 
 from dotenv import load_dotenv
-from openai import OpenAI
+from openai import OpenAI, APIError, RateLimitError
+from pydantic import ValidationError
 from backend.app.schemas import ExplanationResponse
 from backend.app.services.generation_config import (
     MODEL,
@@ -73,7 +79,7 @@ def verifier_citations(
     )
 
 
-def generate_explanation(
+def _generate_explanation(
     question: str,
     documents: list[dict],
 ) -> ExplanationResponse:
@@ -139,3 +145,58 @@ def generate_explanation(
 )
 
     return verifier_citations(explication, documents)
+
+
+class GenerationUnavailable(Exception):
+    """Indisponibilité de l’explication ; les autres résultats restent utilisables."""
+
+
+# Le contenu documentaire et le profil de génération font partie de la clé.
+# Cache borné, local à chaque processus ; aucune erreur n’est mise en cache.
+_explanation_cache = OrderedDict()
+_generation_lock = RLock()
+_retry_after = 0.0
+_CACHE_TTL = 900
+_CACHE_SIZE = 64
+logger = logging.getLogger(__name__)
+
+
+def generate_explanation(question: str, documents: list[dict]) -> ExplanationResponse:
+    """Réutilise les succès 15 minutes et respecte le délai Groq après un 429.
+
+    Les générations sont sérialisées dans ce processus pour éviter les appels
+    identiques simultanés. Le cache est perdu au redémarrage et n’est pas partagé
+    entre instances. Les réponses sont copiées pour éviter une mutation du cache.
+    """
+    global _retry_after
+    if not documents:
+        return ExplanationResponse(claims=[], limitation="insufficient_context")
+    key = json.dumps([question, documents, MODEL, TEMPERATURE, REASONING_EFFORT,
+                      MAX_COMPLETION_TOKENS, CONSIGNES, SCHEMA_GENERATION], sort_keys=True)
+    with _generation_lock:
+        now = time.monotonic()
+        cached = _explanation_cache.get(key)
+        if cached and cached[0] > now:
+            _explanation_cache.move_to_end(key)
+            return cached[1].model_copy(deep=True)
+        if now < _retry_after:
+            raise GenerationUnavailable("L’explication est temporairement indisponible : limite de débit Groq. Les autres résultats restent disponibles.")
+        try:
+            result = _generate_explanation(question, documents)
+        except RateLimitError as error:
+            try:
+                delay = float(error.response.headers.get("retry-after", "30"))
+            except (TypeError, ValueError):
+                delay = 30
+            _retry_after = time.monotonic() + max(1, delay)
+            logger.warning("generation_unavailable provider=groq status=429")
+            raise GenerationUnavailable("L’explication est temporairement indisponible : limite de débit Groq. Les autres résultats restent disponibles.") from None
+        except (APIError, ValidationError, RuntimeError) as error:
+            logger.warning("generation_unavailable provider=groq type=%s status=%s",
+                           type(error).__name__, getattr(error, "status_code", None))
+            raise GenerationUnavailable("L’explication est momentanément indisponible. Les autres résultats restent disponibles.") from None
+        _explanation_cache[key] = (time.monotonic() + _CACHE_TTL, result.model_copy(deep=True))
+        _explanation_cache.move_to_end(key)
+        while len(_explanation_cache) > _CACHE_SIZE:
+            _explanation_cache.popitem(last=False)
+        return result

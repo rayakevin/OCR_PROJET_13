@@ -72,6 +72,7 @@ class OpeningMovesResponse(BaseModel):
     documents: list[DocumentSearchResult]
     videos: list[VideoReference]
     explanation: ExplanationResponse | None = None
+    warnings: list[str] = Field(default_factory=list)
 
 
 

@@ -255,8 +255,15 @@ GET ne sauvegarde rien. Les tests de transport vérifient la fermeture des resso
 Ils complètent les essais réels ; ils ne mesurent pas la pertinence des fournisseurs.
 
 Une panne Lichess reste une erreur, pas une preuve d'absence de coups théoriques.
-Un échec d'enrichissement interrompt actuellement l'analyse : aucune réponse
-partielle n'est enregistrée. Milvus indisponible et Stockfish défaillant renvoient
+Une indisponibilité Groq conserve les coups, documents et vidéos, avec
+`explanation=null` et un avertissement visible. L’utilisateur peut sauvegarder
+ce résultat partiel ou réessayer. Les explications réussies sont réutilisées
+15 minutes (64 entrées maximum, par processus) à question, documents et profil
+identiques. Les générations sont sérialisées dans le processus ; un HTTP 429
+respecte le délai `Retry-After` avant tout nouvel appel, sans bloquer l’interface.
+Les échecs ne sont pas mis en cache. Ce mécanisme réduit les appels répétés,
+mais n’augmente pas le quota fournisseur et ne partage pas le cache entre instances.
+Les autres erreurs d’enrichissement restent bloquantes. Milvus indisponible et Stockfish défaillant renvoient
 503 ; le transport YouTube utilise un timeout de 15 secondes, renvoie 504 en cas
 de délai dépassé et 502 en cas d'erreur réseau. Les détails internes sont masqués.
 

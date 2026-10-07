@@ -154,6 +154,12 @@
 
     @if (analysisState() === 'ready') {
       @if (analysis(); as result) {
+        @for (warning of result.warnings ?? []; track $index) {
+          <p role="status">{{ warning }}</p>
+        }
+        @if (result.warnings?.length) {
+          <button type="button" (click)="analysePosition()">Réessayer l’explication</button>
+        }
         @if (result.game_over) {
           <section>
             <h3>Partie terminée</h3>
@@ -219,7 +225,7 @@
                 <p>Les sources disponibles ne décrivent pas de plans stratégiques.</p>
               }
             } @else {
-              <p>Aucune explication documentaire disponible pour cette position.</p>
+              <p>{{ result.warnings?.length ? "L’explication n’a pas pu être générée pour le moment." : "Aucune explication documentaire disponible pour cette position." }}</p>
             }
 
             <h4>Sources</h4>

@@ -173,6 +173,18 @@ class WorkflowTests(unittest.TestCase):
         self.assertEqual(self.analyse().status_code, 503)
         self.save.assert_not_called()
 
+    def test_generation_unavailable_keeps_moves_documents_and_warning(self):
+        from backend.app.services.generation_service import GenerationUnavailable
+        self.services["generate_explanation"].side_effect = GenerationUnavailable("Limite de débit Groq")
+        response = self.client.post("/api/v1/analyses/preview", json={"fen": FRENCH})
+        self.assertEqual(response.status_code, 200)
+        result = response.json()
+        self.assertEqual(result["moves"][0]["uci"], MOVE["uci"])
+        self.assertEqual(result["documents"][0]["id"], DOCUMENT["id"])
+        self.assertIsNone(result["explanation"])
+        self.assertEqual(result["warnings"], ["Limite de débit Groq"])
+        self.save.assert_not_called()
+
     def test_generation_timeout_prevents_save(self):
         self.services["generate_explanation"].side_effect = APITimeoutError(
             request=httpx.Request("POST", "https://example.invalid")

@@ -65,6 +65,7 @@ export interface OpeningMovesResponse {
   documents: DocumentSearchResult[];
   videos: VideoReference[];
   explanation: ExplanationResponse | null;
+  warnings?: string[];
 }
 
 export interface AnalysisCreatedResponse {
