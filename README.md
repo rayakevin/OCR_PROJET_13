@@ -273,7 +273,7 @@ Une panne Lichess reste une erreur, pas une preuve d'absence de coups théorique
 Une indisponibilité Groq conserve les coups, documents et vidéos, avec
 `explanation=null` et un avertissement visible. L’utilisateur peut sauvegarder
 ce résultat partiel ou réessayer. Les explications réussies sont réutilisées
-15 minutes (64 entrées maximum, par processus) à question, documents et profil
+15 minutes (64 entrées maximum, par processus) à position, question, documents et profil
 identiques. Les générations sont sérialisées dans le processus ; un HTTP 429
 respecte le délai `Retry-After` avant tout nouvel appel, sans bloquer l’interface.
 Les échecs ne sont pas mis en cache. Ce mécanisme réduit les appels répétés,

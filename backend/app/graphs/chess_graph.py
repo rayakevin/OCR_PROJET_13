@@ -1,3 +1,4 @@
+import chess
 from typing import TypedDict
 from langgraph.graph import StateGraph, START, END
 
@@ -105,10 +106,30 @@ def explain_opening(state: ChessState):
     if not titre or not state["documents"]:
         return {"explanation": None}
 
+    board = chess.Board(state["fen"])
+    pieces = {"p": "pion", "n": "cavalier", "b": "fou", "r": "tour", "q": "dame", "k": "roi"}
+    legal_moves = {move.uci(): move for move in board.legal_moves}
+    context = {
+        "fen": state["fen"],
+        "trait": "Blancs" if board.turn else "Noirs",
+        "en_echec": board.is_check(),
+        "numero_coup": board.fullmove_number,
+        "pieces": {
+            chess.square_name(square): f"{pieces[piece.symbol().lower()]} {'blanc' if piece.color else 'noir'}"
+            for square, piece in sorted(board.piece_map().items())
+        },
+        "opening": state["opening"],
+        "coups_candidats": [
+            {"uci": move.uci(), "san": board.san(move)}
+            for candidate in state["moves"]
+            if (move := legal_moves.get(candidate.get("uci"))) is not None
+        ],
+    }
     try:
         explication = generate_explanation(
-            question=f"Quels sont les principes et les plans de {titre} ?",
+            question=f"Que comprendre de cette position dans {titre}, et quels principes documentés sont pertinents pour le camp au trait ?",
             documents=state["documents"],
+            position_context=context,
         )
     except GenerationUnavailable as error:
         return {"explanation": None, "warnings": [str(error)]}

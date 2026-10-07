@@ -39,7 +39,7 @@ def verifier_citations(
 ) -> ExplanationResponse:
     """Écarte les affirmations sans source valide ou sans preuve textuelle retrouvée.
 
-    Seuls les espaces sont normalisés. Ce contrôle ne démontre ni la vérité
+    Seuls les espaces et les apostrophes typographiques sont normalisés. Ce contrôle ne démontre ni la vérité
     du document ni la fidélité sémantique de la reformulation du modèle.
     """
     affirmations_valides = []
@@ -53,9 +53,9 @@ def verifier_citations(
 
         document = documents[numero - 1]
 
-        # Uniformiser les espaces et les retours à la ligne.
-        citation = " ".join(affirmation.evidence.split())
-        texte_source = " ".join(document["text"].split())
+        # Tolérer les variantes typographiques sans modifier les mots.
+        citation = " ".join(affirmation.evidence.replace("’", "'").split())
+        texte_source = " ".join(document["text"].replace("’", "'").split())
 
         if not affirmation.claim.strip() or not citation:
             continue
@@ -82,6 +82,7 @@ def verifier_citations(
 def _generate_explanation(
     question: str,
     documents: list[dict],
+    position_context: dict | None = None,
 ) -> ExplanationResponse:
     # Sans documents, aucune génération n'est nécessaire.
     """Génère via Groq une réponse structurée, puis contrôle ses citations.
@@ -121,6 +122,7 @@ def _generate_explanation(
                     "role": "user",
                     "content": (
                         f"Question : {question}\n\n"
+                        f"Contexte de position (faits vérifiés) :\n{json.dumps(position_context, ensure_ascii=False)}\n\n"
                         f"Extraits documentaires :\n{contexte}"
                     ),
                 },
@@ -161,7 +163,7 @@ _CACHE_SIZE = 64
 logger = logging.getLogger(__name__)
 
 
-def generate_explanation(question: str, documents: list[dict]) -> ExplanationResponse:
+def generate_explanation(question: str, documents: list[dict], position_context: dict | None = None) -> ExplanationResponse:
     """Réutilise les succès 15 minutes et respecte le délai Groq après un 429.
 
     Les générations sont sérialisées dans ce processus pour éviter les appels
@@ -171,7 +173,7 @@ def generate_explanation(question: str, documents: list[dict]) -> ExplanationRes
     global _retry_after
     if not documents:
         return ExplanationResponse(claims=[], limitation="insufficient_context")
-    key = json.dumps([question, documents, MODEL, TEMPERATURE, REASONING_EFFORT,
+    key = json.dumps([question, documents, position_context, MODEL, TEMPERATURE, REASONING_EFFORT,
                       MAX_COMPLETION_TOKENS, CONSIGNES, SCHEMA_GENERATION], sort_keys=True)
     with _generation_lock:
         now = time.monotonic()
@@ -182,7 +184,7 @@ def generate_explanation(question: str, documents: list[dict]) -> ExplanationRes
         if now < _retry_after:
             raise GenerationUnavailable("L’explication est temporairement indisponible : limite de débit Groq. Les autres résultats restent disponibles.")
         try:
-            result = _generate_explanation(question, documents)
+            result = _generate_explanation(question, documents, position_context)
         except RateLimitError as error:
             try:
                 delay = float(error.response.headers.get("retry-after", "30"))

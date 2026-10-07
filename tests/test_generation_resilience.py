@@ -26,6 +26,40 @@ class GenerationResilienceTests(unittest.TestCase):
             service.generate_explanation('plans', [{'text': 'Autre extrait'}])
             self.assertEqual(generate.call_count, 2)
 
+    def test_cache_distinguishes_positions_and_forwards_context(self):
+        with patch.object(service, '_generate_explanation', return_value=self.result) as generate:
+            first = {"fen": "position A", "trait": "Blancs"}
+            second = {"fen": "position B", "trait": "Noirs"}
+            service.generate_explanation('plans', self.documents, first)
+            service.generate_explanation('plans', self.documents, first)
+            generate.assert_called_once_with('plans', self.documents, first)
+            service.generate_explanation('plans', self.documents, second)
+            self.assertEqual(generate.call_count, 2)
+            generate.assert_called_with('plans', self.documents, second)
+
+    def test_request_includes_position_and_documents(self):
+        from types import SimpleNamespace
+        document = {"title": "Défense française", "text": "Les Noirs attaquent le centre.", "source_url": "https://example.org"}
+        output = '{"claims":[{"claim":"Contestez le centre.","source_id":1,"evidence":"Les Noirs attaquent le centre."}],"limitation":"none"}'
+        with patch.object(service, 'OpenAI') as client, patch.object(service, 'load_dotenv'), patch.dict(service.os.environ, {"GROQ_API_KEY": "test"}):
+            create = client.return_value.__enter__.return_value.chat.completions.create
+            create.return_value = SimpleNamespace(choices=[SimpleNamespace(finish_reason='stop', message=SimpleNamespace(content=output))])
+            result = service._generate_explanation('plans', [document], {"trait": "Noirs", "fen": "position-test"})
+            prompt = create.call_args.kwargs['messages'][1]['content']
+            self.assertIn('position-test', prompt)
+            self.assertIn('Les Noirs attaquent le centre.', prompt)
+            self.assertEqual(len(result.claims), 1)
+
+    def test_citations_allow_typography_but_reject_changed_words(self):
+        documents = [{"text": "Les Noirs manquent souvent d’espace."}]
+        response = ExplanationResponse(claims=[
+            {"claim": "Espace limité.", "source_id": 1, "evidence": "Les Noirs manquent souvent d'espace."},
+            {"claim": "Toujours limité.", "source_id": 1, "evidence": "Les Noirs manquent toujours d'espace."},
+        ], limitation='none')
+        checked = service.verifier_citations(response, documents)
+        self.assertEqual([item.claim for item in checked.claims], ["Espace limité."])
+        self.assertEqual(checked.limitation, 'insufficient_context')
+
     def test_cache_expires(self):
         with patch.object(service.time, 'monotonic', return_value=10) as clock, patch.object(service, '_generate_explanation', return_value=self.result) as generate:
             service.generate_explanation('plans', self.documents)

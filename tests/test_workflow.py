@@ -121,6 +121,11 @@ class WorkflowTests(unittest.TestCase):
         self.assertEqual(result["moves"], [MOVE])
         self.assertEqual(result["documents"], [DOCUMENT])
         self.assertTrue(result["explanation"]["claims"])
+        context = self.services["generate_explanation"].call_args.kwargs["position_context"]
+        self.assertEqual(context["fen"], FRENCH)
+        self.assertEqual(context["trait"], "Blancs")
+        self.assertEqual(context["pieces"]["b1"], "cavalier blanc")
+        self.assertEqual(context["coups_candidats"], [{"uci": "b1c3", "san": "Nc3"}])
         self.services["search_documents"].assert_called_once_with(
             question="Quels sont les principes et les plans de Défense française ?",
             opening_title="Défense française", limit=3,
