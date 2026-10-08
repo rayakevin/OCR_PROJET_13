@@ -1,11 +1,13 @@
 import chess
 from typing import TypedDict
 from langgraph.graph import StateGraph, START, END
+from pymilvus.exceptions import MilvusException
 
 from backend.app.services.chess_service import inspect_position
 from backend.app.services.lichess_service import get_opening_moves
 from backend.app.services.stockfish_service import analyse_position
 from backend.app.services.opening_service import get_opening_title
+from backend.app.services.embedding_service import EmbeddingError
 from backend.app.services.vector_search_service import search_documents
 from backend.app.services.youtube_service import search_videos
 from backend.app.services.generation_service import generate_explanation, GenerationUnavailable
@@ -86,15 +88,24 @@ def fetch_videos(state: ChessState):
             return {"videos": []}
 
 def fetch_documents(state: ChessState):
-    """Recherche les principes et plans dans le corpus filtré par ouverture."""
+    """Recherche les principes et plans dans le corpus filtré par ouverture.
+
+    Une panne des embeddings ou de Milvus n'interrompt pas l'analyse : les coups
+    et les vidéos sont conservés, sans documents ni explication, avec un avertissement.
+    """
     titre = get_opening_title(state["opening"])
     if titre : 
+        try:
             passages = search_documents(
-        question=f"Quels sont les principes et les plans de {titre} ?",
-        opening_title=titre,
-        limit=3,
-    )
-            return {"documents": passages}
+                question=f"Quels sont les principes et les plans de {titre} ?",
+                opening_title=titre,
+                limit=3,
+            )
+        except EmbeddingError as erreur:
+            return {"documents": [], "warnings": [str(erreur)]}
+        except MilvusException:
+            return {"documents": [], "warnings": ["La recherche documentaire est indisponible."]}
+        return {"documents": passages}
     else :
             return {"documents": []}
 

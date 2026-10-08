@@ -30,6 +30,10 @@ DOCUMENT = {
     "section_path": ["Introduction"], "text": "Les Noirs attaquent le centre.",
     "source_url": "https://fr.wikipedia.org/wiki/Défense_française", "score": 0.7,
 }
+VIDEO = {
+    "id": "abc123", "title": "La Française", "channel": "Chaîne",
+    "url": "https://www.youtube.com/watch?v=abc123",
+}
 
 
 class WorkflowTests(unittest.TestCase):
@@ -202,20 +206,26 @@ class WorkflowTests(unittest.TestCase):
         self.assertEqual(self.analyse().status_code, 502)
         self.save.assert_not_called()
 
-    def test_embedding_error_keeps_status_and_prevents_save(self):
+    def test_embedding_error_keeps_moves_videos_and_warning(self):
         self.services["search_documents"].side_effect = EmbeddingError("Quota épuisé", 503)
-        response = self.analyse()
-        self.assertEqual(response.status_code, 503)
-        self.assertEqual(response.json()["detail"], "Quota épuisé")
-        self.services["search_videos"].assert_not_called()
-        self.save.assert_not_called()
+        self.services["search_videos"].return_value = [VIDEO]
+        response = self.client.post("/api/v1/analyses/preview", json={"fen": FRENCH})
+        self.assertEqual(response.status_code, 200)
+        result = response.json()
+        self.assertEqual(result["moves"][0]["uci"], MOVE["uci"])
+        self.assertEqual(result["documents"], [])
+        self.assertEqual(result["videos"][0]["id"], VIDEO["id"])
+        self.assertIsNone(result["explanation"])
+        self.assertEqual(result["warnings"], ["Quota épuisé"])
+        self.services["generate_explanation"].assert_not_called()
 
-    def test_milvus_failure_returns_controlled_503(self):
+    def test_milvus_failure_keeps_analysis_with_controlled_warning(self):
         self.services["search_documents"].side_effect = MilvusException(message="secret")
-        response = self.analyse()
-        self.assertEqual(response.status_code, 503)
+        response = self.client.post("/api/v1/analyses/preview", json={"fen": FRENCH})
+        self.assertEqual(response.status_code, 200)
         self.assertNotIn("secret", response.text)
-        self.save.assert_not_called()
+        self.assertEqual(response.json()["warnings"], ["La recherche documentaire est indisponible."])
+        self.services["search_videos"].assert_called_once()
 
     def test_youtube_timeout_returns_controlled_504(self):
         self.services["search_videos"].side_effect = YouTubeError("YouTube ne répond pas à temps.", 504)
