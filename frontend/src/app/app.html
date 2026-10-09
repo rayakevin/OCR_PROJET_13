@@ -65,6 +65,20 @@
       <a href="/projet.html" target="_blank" rel="noopener">Comprendre le projet <span aria-hidden="true">↗</span></a>
       <a href="https://github.com/rayakevin/OCR_PROJET_13#première-installation-depuis-un-clone" target="_blank" rel="noopener noreferrer">Code source et installation <span aria-hidden="true">↗</span></a>
     </nav>
+    <details class="corpus-openings">
+      <summary>Corpus documentaire du RAG · {{ corpusOpenings.length }} ouvertures</summary>
+      <p>Articles Wikipédia indexés pour la recherche documentaire. Un clic joue les coups caractéristiques et lance l’analyse.</p>
+      <ul>
+        @for (opening of corpusOpenings; track opening.title) {
+          <li>
+            <button type="button" (click)="loadCorpusOpening(opening)" [disabled]="pendingPromotion() !== null">
+              <span>{{ opening.title }}</span>
+              <span class="corpus-moves">{{ opening.moves.join(' ') }}</span>
+            </button>
+          </li>
+        }
+      </ul>
+    </details>
   </section>
 
   <aside class="analysis-panel">

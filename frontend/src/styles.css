@@ -23,3 +23,12 @@ body { margin: 0; background: var(--page); color: var(--text); }
 /* Keep file labels within the board at every screen size. */
 .cg-wrap coords.files { left: 0; text-align: right; }
 .cg-wrap coords.files coord { flex: 0 0 12.5%; box-sizing: border-box; padding-right: 4px; }
+
+/* Corpus du RAG : liste compacte et repliée, défilable au-delà de quelques lignes. */
+.corpus-openings { margin-top: 18px; font-size: .85rem; color: var(--muted); }
+.corpus-openings p { margin: 10px 0; }
+.corpus-openings ul { list-style: none; margin: 0; padding: 0; max-height: 320px; overflow-y: auto; border: 1px solid var(--line); border-radius: 8px; }
+.corpus-openings li + li { border-top: 1px solid var(--line); }
+.corpus-openings li > button { margin: 0; display: flex; justify-content: space-between; align-items: baseline; gap: 12px; width: 100%; padding: 8px 12px; border: 0; border-radius: 0; background: transparent; color: var(--text); text-align: left; font: inherit; cursor: pointer; }
+.corpus-openings li > button:hover:not(:disabled) { background: var(--raised); }
+.corpus-moves { color: var(--muted); font-size: .75rem; white-space: nowrap; }
