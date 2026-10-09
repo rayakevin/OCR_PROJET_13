@@ -7,7 +7,7 @@ import type { Api } from '@lichess-org/chessground/api';
 import type { Key } from '@lichess-org/chessground/types';
 
 import { coachDemoScenarios } from './data/coach-demo';
-import { ragCorpusOpenings, type CorpusOpening } from './data/rag-corpus';
+import { outOfCorpusOpenings, ragCorpusOpenings, type CorpusOpening } from './data/rag-corpus';
 import type {
   AnalysisSummary,
   LichessMove,
@@ -43,6 +43,7 @@ export class App {
 
   protected readonly demoScenarios = coachDemoScenarios;
   protected readonly corpusOpenings = ragCorpusOpenings;
+  protected readonly outOfCorpusOpenings = outOfCorpusOpenings;
   protected readonly analysis = signal<OpeningMovesResponse | null>(null);
   protected readonly analysisId = signal<string | null>(null);
 
@@ -128,7 +129,7 @@ export class App {
   }
   /** Joue les coups caractéristiques depuis la position initiale, puis analyse.
    *  L’historique est conservé : Lichess reçoit le contexte et « Annuler » reste possible. */
-  protected loadCorpusOpening(opening: CorpusOpening): void {
+  protected loadOpening(opening: CorpusOpening): void {
     this.game.reset();
     for (const move of opening.moves) {
       this.game.move(move);

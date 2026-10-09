@@ -42,3 +42,23 @@ export const ragCorpusOpenings: CorpusOpening[] = [
   { title: 'Partie viennoise', moves: ['e4', 'e5', 'Nc3'] },
   { title: 'Système de Londres', moves: ['d4', 'd5', 'Nf3', 'Nf6', 'Bf4'] },
 ];
+
+/**
+ * Ouvertures connues sans article dans le corpus, pour contrôler l’abstention :
+ * Lichess les reconnaît et propose des coups, mais aucun document, aucune vidéo
+ * ni explication ne doit être produit. Vérifiées comme les ouvertures du corpus.
+ */
+export const outOfCorpusOpenings: CorpusOpening[] = [
+  { title: 'Attaque Nimzo-Larsen', moves: ['b3'] },
+  { title: 'Attaque Trompowsky', moves: ['d4', 'Nf6', 'Bg5'] },
+  { title: 'Défense Bogo-indienne', moves: ['d4', 'Nf6', 'c4', 'e6', 'Nf3', 'Bb4'] },
+  { title: 'Défense Nimzowitsch', moves: ['e4', 'Nc6'] },
+  { title: 'Défense Owen', moves: ['e4', 'b6'] },
+  { title: 'Gambit Benko', moves: ['d4', 'Nf6', 'c4', 'c5', 'd5', 'b5'] },
+  { title: 'Gambit de Budapest', moves: ['d4', 'Nf6', 'c4', 'e5'] },
+  { title: 'Gambit letton', moves: ['e4', 'e5', 'Nf3', 'f5'] },
+  { title: 'Ouverture Bird', moves: ['f4'] },
+  { title: 'Ouverture polonaise', moves: ['b4'] },
+  { title: 'Partie du centre', moves: ['e4', 'e5', 'd4', 'exd4', 'Qxd4'] },
+  { title: 'Partie du fou', moves: ['e4', 'e5', 'Bc4'] },
+];

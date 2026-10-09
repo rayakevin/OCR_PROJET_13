@@ -33,7 +33,7 @@ function setup() {
     require: name => name === '@angular/core' ? angular
       : name === './services/chess-api' ? { ChessApi: {} }
       : name === './data/coach-demo' ? { coachDemoScenarios: [] }
-      : name === './data/rag-corpus' ? { ragCorpusOpenings: [] }
+      : name === './data/rag-corpus' ? { ragCorpusOpenings: [], outOfCorpusOpenings: [] }
       : name.startsWith('@') ? {} : require(name),
   });
   const app = new exports.App();
@@ -60,7 +60,7 @@ test('un coup analyse sans sauvegarder ; les réponses périmées sont ignorées
 test('une ouverture du corpus rejoue ses coups depuis le début puis lance une analyse', () => {
   const { app, previews, flush } = setup();
   app.playMove('d2', 'd4'); flush();
-  app.loadCorpusOpening({ title: 'Défense française', moves: ['e4', 'e6'] }); flush();
+  app.loadOpening({ title: 'Défense française', moves: ['e4', 'e6'] }); flush();
   previews[0].stream.complete();
   assert.equal(previews.length, 2);
   const last = previews[previews.length - 1];

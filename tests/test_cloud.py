@@ -41,6 +41,7 @@ class CloudAppTests(unittest.TestCase):
             with tempfile.TemporaryDirectory() as directory:
                 Path(directory, "index.html").write_text("<h1>Chess Coach</h1>")
                 Path(directory, "main.js").write_text("console.log('ready');")
+                Path(directory, "projet.html").write_text("<h1>Projet</h1>")
                 with patch.dict(os.environ, {"STATIC_DIR": directory}):
                     importlib.import_module("backend.app.cloud")
                     with TestClient(app) as client:
@@ -49,5 +50,9 @@ class CloudAppTests(unittest.TestCase):
                         self.assertEqual(client.get("/api/v1/healthcheck").status_code, 200)
                         self.assertEqual(client.get("/api/v1/inconnue").status_code, 404)
                         self.assertEqual(client.get("/.env").status_code, 404)
+                        # Pages à nom fixe revalidées ; bundles laissés au cache du navigateur.
+                        self.assertEqual(client.get("/").headers.get("cache-control"), "no-cache")
+                        self.assertEqual(client.get("/projet.html").headers.get("cache-control"), "no-cache")
+                        self.assertIsNone(client.get("/main.js").headers.get("cache-control"))
         finally:
             app.router.routes[:] = original_routes

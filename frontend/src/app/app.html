@@ -65,15 +65,29 @@
       <a href="/projet.html" target="_blank" rel="noopener">Comprendre le projet <span aria-hidden="true">↗</span></a>
       <a href="https://github.com/rayakevin/OCR_PROJET_13#première-installation-depuis-un-clone" target="_blank" rel="noopener noreferrer">Code source et installation <span aria-hidden="true">↗</span></a>
     </nav>
-    <details class="corpus-openings">
+    <details class="opening-list">
+      <summary>Ouvertures hors corpus · {{ outOfCorpusOpenings.length }} contrôles</summary>
+      <p>Ouvertures connues de Lichess, sans article dans le corpus. Comportement attendu : coups proposés, mais ni documents, ni vidéos, ni explication.</p>
+      <ul>
+        @for (opening of outOfCorpusOpenings; track opening.title) {
+          <li>
+            <button type="button" (click)="loadOpening(opening)" [disabled]="pendingPromotion() !== null">
+              <span>{{ opening.title }}</span>
+              <span class="opening-moves">{{ opening.moves.join(' ') }}</span>
+            </button>
+          </li>
+        }
+      </ul>
+    </details>
+    <details class="opening-list">
       <summary>Corpus documentaire du RAG · {{ corpusOpenings.length }} ouvertures</summary>
       <p>Articles Wikipédia indexés pour la recherche documentaire. Un clic joue les coups caractéristiques et lance l’analyse.</p>
       <ul>
         @for (opening of corpusOpenings; track opening.title) {
           <li>
-            <button type="button" (click)="loadCorpusOpening(opening)" [disabled]="pendingPromotion() !== null">
+            <button type="button" (click)="loadOpening(opening)" [disabled]="pendingPromotion() !== null">
               <span>{{ opening.title }}</span>
-              <span class="corpus-moves">{{ opening.moves.join(' ') }}</span>
+              <span class="opening-moves">{{ opening.moves.join(' ') }}</span>
             </button>
           </li>
         }
