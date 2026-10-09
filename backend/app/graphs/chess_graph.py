@@ -87,6 +87,14 @@ def fetch_videos(state: ChessState):
     else :
             return {"videos": []}
 
+def reading_order(document: dict):
+    """Clé de tri : source, puis numéro de passage dans l'article (id « …_chunk_N »)."""
+    source, _, numero = document["id"].rpartition("_chunk_")
+    if not source or not numero.isdigit():
+        return (document["id"], 0)
+    return (source, int(numero))
+
+
 def fetch_documents(state: ChessState):
     """Recherche les principes et plans dans le corpus filtré par ouverture.
 
@@ -105,7 +113,9 @@ def fetch_documents(state: ChessState):
             return {"documents": [], "warnings": [str(erreur)]}
         except MilvusException:
             return {"documents": [], "warnings": ["La recherche documentaire est indisponible."]}
-        return {"documents": passages}
+        # Les scores de passages voisins varient d'un appel à l'autre : l'ordre de
+        # lecture rend la liste stable, donc la numérotation des sources et le cache.
+        return {"documents": sorted(passages, key=reading_order)}
     else :
             return {"documents": []}
 

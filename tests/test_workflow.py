@@ -206,6 +206,18 @@ class WorkflowTests(unittest.TestCase):
         self.assertEqual(self.analyse().status_code, 502)
         self.save.assert_not_called()
 
+    def test_documents_follow_reading_order_not_score(self):
+        self.services["search_documents"].return_value = [
+            {**DOCUMENT, "id": "french_chunk_14", "score": 0.73},
+            {**DOCUMENT, "id": "french_chunk_1", "score": 0.72},
+            {**DOCUMENT, "id": "french_chunk_0", "score": 0.71},
+        ]
+        result = self.client.post("/api/v1/analyses/preview", json={"fen": FRENCH}).json()
+        self.assertEqual([d["id"] for d in result["documents"]],
+                         ["french_chunk_0", "french_chunk_1", "french_chunk_14"])
+        sent = self.services["generate_explanation"].call_args.kwargs["documents"]
+        self.assertEqual([d["id"] for d in sent], ["french_chunk_0", "french_chunk_1", "french_chunk_14"])
+
     def test_embedding_error_keeps_moves_videos_and_warning(self):
         self.services["search_documents"].side_effect = EmbeddingError("Quota épuisé", 503)
         self.services["search_videos"].return_value = [VIDEO]
