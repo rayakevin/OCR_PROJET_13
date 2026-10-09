@@ -1,4 +1,5 @@
 import os
+import hashlib
 import json
 import logging
 import time
@@ -9,6 +10,7 @@ from dotenv import load_dotenv
 from openai import OpenAI, APIError, RateLimitError
 from pydantic import ValidationError
 from backend.app.schemas import ExplanationResponse
+from backend.app.services import explanation_cache_repository
 from backend.app.services.generation_config import (
     MODEL,
     TEMPERATURE,
@@ -154,33 +156,72 @@ class GenerationUnavailable(Exception):
 
 
 # Le contenu documentaire et le profil de génération font partie de la clé.
-# Cache borné, local à chaque processus ; aucune erreur n’est mise en cache.
+# Premier niveau en mémoire, borné et local au processus ; second niveau
+# permanent dans MongoDB. Aucune erreur n’est mise en cache.
 _explanation_cache = OrderedDict()
 _generation_lock = RLock()
 _retry_after = 0.0
-_CACHE_TTL = 900
 _CACHE_SIZE = 64
+# Seuls ces champs entrent dans le prompt. Le score Milvus varie légèrement
+# d’un appel à l’autre et rendrait chaque clé unique.
+_DOCUMENT_KEY_FIELDS = ("id", "title", "section_path", "text", "source_url")
 logger = logging.getLogger(__name__)
 
 
-def generate_explanation(question: str, documents: list[dict], position_context: dict | None = None) -> ExplanationResponse:
-    """Réutilise les succès 15 minutes et respecte le délai Groq après un 429.
+def cache_key(question: str, documents: list[dict], position_context: dict | None = None) -> str:
+    """Empreinte SHA-256 de tout ce qui détermine la génération.
 
-    Les générations sont sérialisées dans ce processus pour éviter les appels
-    identiques simultanés. Le cache est perdu au redémarrage et n’est pas partagé
-    entre instances. Les réponses sont copiées pour éviter une mutation du cache.
+    L’ordre des documents est conservé : il fixe la numérotation des sources citées.
+    Un changement de modèle, de consignes ou de corpus produit une nouvelle clé.
+    """
+    documents_cles = [{champ: document.get(champ) for champ in _DOCUMENT_KEY_FIELDS} for document in documents]
+    contenu = json.dumps([question, documents_cles, position_context, MODEL, TEMPERATURE, REASONING_EFFORT,
+                          MAX_COMPLETION_TOKENS, CONSIGNES, SCHEMA_GENERATION], sort_keys=True)
+    return hashlib.sha256(contenu.encode("utf-8")).hexdigest()
+
+
+def _remember(key: str, result: ExplanationResponse) -> None:
+    _explanation_cache[key] = result.model_copy(deep=True)
+    _explanation_cache.move_to_end(key)
+    while len(_explanation_cache) > _CACHE_SIZE:
+        _explanation_cache.popitem(last=False)
+
+
+def _load_stored(key: str) -> ExplanationResponse | None:
+    """Relit MongoDB ; un document illisible est ignoré et sera régénéré."""
+    stored = explanation_cache_repository.load_explanation(key)
+    if stored is None:
+        return None
+    try:
+        return ExplanationResponse.model_validate(stored)
+    except ValidationError:
+        logger.warning("explanation_cache_invalid")
+        return None
+
+
+def generate_explanation(question: str, documents: list[dict], position_context: dict | None = None) -> ExplanationResponse:
+    """Réutilise sans expiration les succès déjà générés, puis respecte le délai Groq après un 429.
+
+    Le corpus étant figé, une même clé donne toujours la même explication. Le cache
+    est consulté avant le délai Groq : une position connue reste expliquée pendant
+    une limite de débit. Seules les explications avec au moins une affirmation
+    sont conservées dans MongoDB. Les générations sont sérialisées dans ce
+    processus ; les réponses sont copiées pour éviter une mutation du cache.
     """
     global _retry_after
     if not documents:
         return ExplanationResponse(claims=[], limitation="insufficient_context")
-    key = json.dumps([question, documents, position_context, MODEL, TEMPERATURE, REASONING_EFFORT,
-                      MAX_COMPLETION_TOKENS, CONSIGNES, SCHEMA_GENERATION], sort_keys=True)
+    key = cache_key(question, documents, position_context)
     with _generation_lock:
         now = time.monotonic()
         cached = _explanation_cache.get(key)
-        if cached and cached[0] > now:
+        if cached is not None:
             _explanation_cache.move_to_end(key)
-            return cached[1].model_copy(deep=True)
+            return cached.model_copy(deep=True)
+        stored = _load_stored(key)
+        if stored is not None:
+            _remember(key, stored)
+            return stored
         if now < _retry_after:
             raise GenerationUnavailable("L’explication est temporairement indisponible : limite de débit Groq. Les autres résultats restent disponibles.")
         try:
@@ -197,8 +238,7 @@ def generate_explanation(question: str, documents: list[dict], position_context:
             logger.warning("generation_unavailable provider=groq type=%s status=%s",
                            type(error).__name__, getattr(error, "status_code", None))
             raise GenerationUnavailable("L’explication est momentanément indisponible. Les autres résultats restent disponibles.") from None
-        _explanation_cache[key] = (time.monotonic() + _CACHE_TTL, result.model_copy(deep=True))
-        _explanation_cache.move_to_end(key)
-        while len(_explanation_cache) > _CACHE_SIZE:
-            _explanation_cache.popitem(last=False)
+        _remember(key, result)
+        if result.claims:
+            explanation_cache_repository.store_explanation(key, result.model_dump(), MODEL)
         return result
