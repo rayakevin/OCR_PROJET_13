@@ -322,6 +322,7 @@ const deployments = {
 const dockerMode=document.getElementById('docker-mode');let dockerCurrent=0;
 function renderDocker(){
   const config=deployments[dockerMode.value];
+  document.querySelectorAll('[data-topology]').forEach(figure=>{figure.hidden=figure.dataset.topology!==dockerMode.value;});
   document.getElementById('docker-overview').textContent=config.overview;
   document.getElementById('docker-map').replaceChildren(...config.nodes.map((node,index)=>{
     const button=document.createElement('button');button.type='button';button.setAttribute('aria-pressed',String(index===dockerCurrent));
